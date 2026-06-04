@@ -1,0 +1,6 @@
+{
+  "name": "Chavarundo?",
+  "description": "A community road waste and garbage reporting application. Users can report waste dumps by drawing paths using the route directions API on a dark mode map, and see reports from others.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": []
+}

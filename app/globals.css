@@ -1,0 +1,119 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+/* Safe-area and viewport custom properties.
+   --sat / --sab: resolved once from env() so all elements share the same value.
+   --app-height: overridden by JS via window.visualViewport for pixel-perfect sizing. */
+:root {
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --app-height: 100dvh;
+}
+
+/* Three-layer height fallback:
+   1. 100vh   — oldest browsers
+   2. 100dvh  — modern CSS (excludes Chrome/Android URL bar)
+   3. var(--app-height) — JS sets this to visualViewport.height for pixel-perfect sizing */
+.h-app {
+  height: 100vh;
+  height: 100dvh;
+  height: var(--app-height);
+}
+
+@theme {
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --font-handwriting: var(--font-handwriting);
+  --font-malayalam: var(--font-malayalam);
+}
+
+/* Kill Leaflet's popup open/close animation (the "jiggle" on click) */
+.leaflet-popup,
+.leaflet-zoom-anim .leaflet-popup {
+  transition: none !important;
+  animation: none !important;
+}
+
+.leaflet-popup-content-wrapper {
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+}
+
+.leaflet-popup-tip-container {
+  display: none !important;
+}
+
+.leaflet-popup-content {
+  margin: 0 !important;
+  width: auto !important;
+}
+
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(0.8); opacity: 0.8; }
+  100% { transform: scale(3.5); opacity: 0; }
+}
+
+@keyframes pulse-dot {
+  0% { transform: scale(0.9); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(0.9); }
+}
+
+.marker-pulse-container {
+  position: relative;
+  width: 12px;
+  height: 12px;
+}
+
+.marker-pulse-ring {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+}
+
+.marker-pulse-dot {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+@keyframes polyline-pulse {
+  0% { filter: drop-shadow(0 0 2px currentColor); opacity: 0.6; }
+  50% { filter: drop-shadow(0 0 8px currentColor); opacity: 1; }
+  100% { filter: drop-shadow(0 0 2px currentColor); opacity: 0.6; }
+}
+
+.animated-polyline {
+  animation: polyline-pulse 3s infinite ease-in-out;
+}
+
+.animated-polyline-high {
+  animation: polyline-pulse 1.5s infinite ease-in-out;
+}
+
+@keyframes marquee {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-100%); }
+}
+
+.animate-marquee {
+  animation: marquee 25s linear infinite;
+}
+
