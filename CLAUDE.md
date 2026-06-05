@@ -24,7 +24,7 @@ npx tsc --noEmit  # Type-check without emitting
 
 ### API Routes (both edge runtime)
 
-- **`/api/search`** — Proxies OLA Maps autocomplete. Requires `X-Firebase-AppCheck` header and `Origin: https://chavarundo.open2.in` on the upstream fetch (OLA Maps domain restriction).
+- **`/api/search`** — Proxies OpenStreetMap Nominatim search API. Requires `X-Firebase-AppCheck` header.
 - **`/api/constituency`** — Point-in-polygon lookup for Kerala assembly/parliamentary/LSGD boundaries. Fetches GeoJSON from Open Data Kerala on demand, cached 24h via `Cache-Control`.
 
 Both routes enforce Firebase App Check via `verifyAppCheckToken()` in `lib/appcheck-verify.ts`. The client attaches tokens via `fetchWithAppCheck()` in `lib/appcheck-fetch.ts`.
@@ -58,5 +58,5 @@ Both routes enforce Firebase App Check via `verifyAppCheckToken()` in `lib/appch
 ### Environment Variables
 
 See `.env.example`. Key non-obvious ones:
-- `OLA_MAPS_API_KEY` — server-side only (no `NEXT_PUBLIC_`), used in `/api/search`. The upstream fetch must include `Origin: https://chavarundo.open2.in` or OLA Maps rejects with "Domain not allowed."
 - `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` — reCAPTCHA v3 for Firebase App Check.
+

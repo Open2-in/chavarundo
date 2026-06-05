@@ -31,7 +31,7 @@
 - 🔐 **Authentication:** Secure Google Sign-In using Firebase Authentication.
 - ⚡ **Realtime Updates:** Reports and votes sync instantly to all connected users without a page reload using Firestore real-time listeners.
 - 🛡️ **App Check:** reCAPTCHA v3-backed Firebase App Check protects all API routes and Firestore writes from abuse.
-- 🔍 **Location Search:** OLA Maps-powered address autocomplete to quickly navigate the map.
+- 🔍 **Location Search:** OpenStreetMap Nominatim-powered address search to quickly navigate the map.
 
 ## 🛠️ Tech Stack
 
@@ -51,8 +51,7 @@
 
 **External APIs**
 - [OSRM Router API](http://project-osrm.org/) for routing polylines
-- [Nominatim](https://nominatim.org/) for reverse geocoding
-- [OLA Maps](https://maps.olacabs.com/) for address autocomplete (server-side only)
+- [Nominatim](https://nominatim.org/) for reverse geocoding and address search
 - [Open Data Kerala](https://kerala.gov.in/) GeoJSON for constituency/LSGD point-in-polygon lookup
 - [Google Maps Polyline Codec](https://github.com/googlemaps/js-polyline-codec) for encoding/decoding OSRM routes
 
@@ -90,7 +89,6 @@ Ensure you have the following installed on your local machine:
    NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
    NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=your_measurement_id
    NEXT_PUBLIC_RECAPTCHA_SITE_KEY=your_recaptcha_v3_site_key
-   OLA_MAPS_API_KEY=your_ola_maps_api_key   # server-side only, used in /api/search
    ```
 
 4. **Run the development server:**
