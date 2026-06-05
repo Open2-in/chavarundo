@@ -66,11 +66,13 @@ import {
   Moon,
   Trophy,
   UserCircle,
+  HelpCircle,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import ProfilePanel from "./profile/ProfilePanel";
 import AuthorityProfilePanel from "./profile/AuthorityProfilePanel";
 import LeaderboardPanel from "./leaderboard/LeaderboardPanel";
+import OnboardingGuide from "./OnboardingGuide";
 // Fix default marker icon issues in Leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -159,8 +161,15 @@ export default function LeafletWasteMap({ initialReports }: { initialReports?: a
   const [authoritySubject, setAuthoritySubject] = useState<any>(null);
   const [showSignInReportPrompt, setShowSignInReportPrompt] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
 
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    setMounted(true);
+    const seen = localStorage.getItem("chavarundo_guide_seen");
+    if (!seen) {
+      setGuideOpen(true);
+    }
+  }, []);
 
   // Reporting state
   const [reportingMode, setReportingMode] = useState(false);
@@ -720,6 +729,14 @@ export default function LeafletWasteMap({ initialReports }: { initialReports?: a
           >
             <Search className="w-5 h-5" />
           </button>
+          {/* Help / Guide */}
+          <button
+            onClick={() => setGuideOpen(true)}
+            className="p-2 bg-white/90 dark:bg-black/90 border border-neutral-200 dark:border-cyan-500/30 rounded shadow-md text-cyan-600 dark:text-cyan-400 hover:bg-cyan-50 dark:hover:bg-cyan-900/30 hover:shadow-[0_0_12px_rgba(0,255,255,0.3)] transition-all"
+            title="How it Works"
+          >
+            <HelpCircle className="w-5 h-5" />
+          </button>
           <button
             onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
             className="p-2 bg-white/90 dark:bg-black/90 border border-neutral-200 dark:border-cyan-500/30 rounded shadow-md text-blue-700 dark:text-cyan-400 hover:bg-neutral-100 dark:hover:bg-blue-100/40 dark:bg-cyan-900/40 transition-all"
@@ -772,6 +789,15 @@ export default function LeafletWasteMap({ initialReports }: { initialReports?: a
           setProfileSubject(u);
           setLeaderboardOpen(false);
           setProfileOpen(true);
+        }}
+      />
+      <OnboardingGuide
+        isOpen={guideOpen}
+        onClose={(completedOrSkipped) => {
+          setGuideOpen(false);
+          if (completedOrSkipped) {
+            localStorage.setItem("chavarundo_guide_seen", "true");
+          }
         }}
       />
     </div>

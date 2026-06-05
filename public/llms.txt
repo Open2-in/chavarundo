@@ -1,27 +1,55 @@
 # Chavarundo
 
-> Community-driven road waste & garbage tracking map for Kerala, India.
+> Community-driven public waste & garbage tracking map for Kerala, India.
 
-Chavarundo (meaning "Is there waste?" in Malayalam) is an open-source platform where residents can report, upvote, and track public road waste and garbage dumps across Kerala. Reports include severity, location, constituency info, and road authority classification.
+Chavarundo (meaning "Is there waste?" in Malayalam) is an open-source platform where residents can report, upvote, and track public waste and garbage dumps across Kerala. Reports include severity, photo evidence, address, constituency details, and responsible government authority.
 
-## Features
+## Tech Stack
 
-- Interactive map showing community-reported waste spots across Kerala
-- Report road waste by tracing a road segment on the map
-- Severity classification: low, medium, high
-- Road authority tagging: Ward Member, Panchayat/LSGD, MLA/State PWD, MP/NHAI
-- Constituency lookup: Assembly, Parliamentary, and LSGD boundaries
-- Community voting to confirm or dispute reports
-- Photo uploads for visual evidence
+- **Framework**: Next.js 15 (App Router, ISR, API Routes)
+- **UI Core**: React 19, Tailwind CSS v4, Lucide Icons, Motion (Framer Motion)
+- **Mapping**: Leaflet (react-leaflet, react-leaflet-cluster, OpenStreetMap)
+- **State Management**: Zustand
+- **Backend/Database**: Firebase (Auth, Firestore, Admin SDK)
+- **AI/APIs**: Google Gen AI SDK (Gemini API for garbage verification), Nominatim (Reverse Geocoding), OSRM (Road Proximity & Route Queries), Overpass API (OSM Road Classification)
 
-## Data
+## Core Workflows
 
-- Reports are geolocated with encoded polyline paths
-- Each report includes address, district, pincode, AC/PC/LSGD constituency
-- Road authority derived from OpenStreetMap highway tags via Overpass API
-- Real-time updates via Firebase Firestore
+### 1. Photo-Based Reporting & Geotagging
+- Users trigger a report by uploading or capturing a live photo.
+- The client reads GPS coordinates from the photo's EXIF metadata.
+- If coordinates are found, the app guides the user to adjust the location on the map, constrained to a **30-meter radius** from the photo's original GPS coordinates to ensure report accuracy and prevent fraud.
+- Users fill in the reporter name, severity level (low, medium, high), and optional notes.
+
+### 2. AI Audit & Proximity Verification
+- Upon submission, the report is saved with a `pending` status.
+- **Road Proximity Check**: An OSRM nearest-road query checks if the report is within **50 meters** of a public road. If it is too far, it fails verification.
+- **AI Garbage Verification**: Next.js API route fetches the image, passes it to the Gemini API, and reviews whether the image contains public waste/garbage.
+- If verified, the report status is updated, and enrichment runs in the background.
+
+### 3. Background Enrichment
+Once a report passes verification, the backend or background processes resolve:
+- **Constituency Info**: Identifies the Local Self Government (LSGD) Panchayat/Municipality/Corporation, Assembly (AC), Parliamentary (PC) constituencies, and Ward details.
+- **Road Authority Classification**: Categorizes who is responsible for the cleanup based on OSM road tags:
+  - **National Highway (NHAI) / MP**: Motorways, trunk roads.
+  - **State PWD / MLA**: Primary or secondary roads.
+  - **Panchayat / Municipality / LSGD**: Tertiary and local roads.
+  - **Ward Member**: Residential and unclassified roads.
+
+### 4. Interactive Citizen Onboarding Guide
+- First-time visitors are automatically shown a beautiful 6-step interactive onboarding tour carousel (`OnboardingGuide.tsx`).
+- Visualized with custom animated neon SVGs representing:
+  1. **Welcome**: Kerala public waste tracker overview.
+  2. **Step 1: Snap a Photo**: Live photo capture and location (GPS) guidelines.
+  3. **Step 2: Check the Map**: Pinpoint precision dragging with 30m constraint.
+  4. **Step 3: AI Audit & Cleanup**: Automated verification and routing to authorities.
+  5. **Join the Mission**: Sharing reports and upvoting near you to speed up cleanup.
+  6. **Restore Our Pride**: Motivation to clean Kerala and restore "God's Own Country".
+- Uses `localStorage` persistence only when the user explicitly completes ("Let's Go") or clicks "Skip Tour", protecting against accidental closes.
+- Re-triggerable at any time via the Help FAB button (`HelpCircle`) on the map controls.
 
 ## Links
 
 - App: https://chavarundo.open2.in
 - Source: https://github.com/open2-in/chavarundo
+

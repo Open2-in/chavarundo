@@ -17,16 +17,16 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: 'Chavarundo? | Community Waste & Garbage Tracker for Kerala',
-  description: 'Community-driven waste and garbage tracking map for Kerala. Report and track road waste (chavaru) in your area with our interactive map.',
-  keywords: 'waste, garbage dump, garbage tracker, road waste, trash, map, community tracking, chavaru, Kerala roads, waste tracker, pollution, LSGD, PWD, Kerala',
+  title: 'Chavarundo? | Community Public Waste & Garbage Tracker for Kerala',
+  description: 'Community-driven public waste and garbage tracking map for Kerala. Report and track public waste (chavaru) in your area with our interactive map.',
+  keywords: 'waste, garbage dump, garbage tracker, public waste, trash, map, community tracking, chavaru, Kerala roads, waste tracker, pollution, LSGD, PWD, Kerala',
   metadataBase: new URL('https://chavarundo.open2.in'),
   alternates: {
     canonical: 'https://chavarundo.open2.in',
   },
   openGraph: {
-    title: 'Chavarundo? | Community Waste & Garbage Tracker for Kerala',
-    description: 'Community-driven waste and garbage tracking map for Kerala. Report and track road waste (chavaru) in your area with our interactive map.',
+    title: 'Chavarundo? | Community Public Waste & Garbage Tracker for Kerala',
+    description: 'Community-driven public waste and garbage tracking map for Kerala. Report and track public waste (chavaru) in your area with our interactive map.',
     url: 'https://chavarundo.open2.in',
     siteName: 'Chavarundo?',
     locale: 'en_IN',
@@ -36,14 +36,14 @@ export const metadata: Metadata = {
         url: '/opengraph-image',
         width: 1200,
         height: 630,
-        alt: 'Chavarundo? — Community Waste & Garbage Tracker for Kerala',
+        alt: 'Chavarundo? — Community Public Waste & Garbage Tracker for Kerala',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Chavarundo? | Community Waste & Garbage Tracker for Kerala',
-    description: 'Community-driven waste and garbage tracking map. Report and track road waste.',
+    title: 'Chavarundo? | Community Public Waste & Garbage Tracker for Kerala',
+    description: 'Community-driven public waste and garbage tracking map. Report and track public waste.',
     images: ['/twitter-image'],
     site: '@chavarundo',
     creator: '@chavarundo',
@@ -70,7 +70,7 @@ const jsonLd = {
   "@type": "WebApplication",
   name: "Chavarundo?",
   url: "https://chavarundo.open2.in",
-  description: "Community-driven waste and garbage tracking map for Kerala. Report and track road waste (chavaru) with an interactive map.",
+  description: "Community-driven public waste and garbage tracking map for Kerala. Report and track public waste (chavaru) with an interactive map.",
   applicationCategory: "UtilityApplication",
   operatingSystem: "Web",
   offers: { "@type": "Offer", price: "0", priceCurrency: "INR" },

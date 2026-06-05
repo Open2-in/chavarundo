@@ -2,9 +2,9 @@ import { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Chavarundo? | Community Waste & Garbage Tracker for Kerala",
+    name: "Chavarundo? | Community Public Waste & Garbage Tracker for Kerala",
     short_name: "Chavarundo",
-    description: "Community-driven waste and garbage tracking map. Report and track road waste (chavaru) in Kerala.",
+    description: "Community-driven public waste and garbage tracking map. Report and track public waste (chavaru) in Kerala.",
     start_url: "/",
     display: "standalone",
     background_color: "#000000",
