@@ -416,8 +416,9 @@ export default function LeafletWasteMap({ initialReports }: { initialReports?: a
         {mounted && (
           <TileLayer
             key={resolvedTheme}
-            url={resolvedTheme === 'light' ? "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" : "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"}
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+            className={resolvedTheme === 'light' ? "light-map-tiles" : "dark-map-tiles"}
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           />
         )}
 

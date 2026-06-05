@@ -117,3 +117,14 @@
   animation: marquee 25s linear infinite;
 }
 
+/* Improve map tile road contrast and visibility to match Google Maps */
+.light-map-tiles {
+  filter: saturate(0.75) contrast(0.92) brightness(1.02) sepia(4%);
+}
+
+.dark-map-tiles {
+  filter: invert(90%) hue-rotate(180deg) brightness(85%) contrast(115%) saturate(90%);
+}
+
+
+
