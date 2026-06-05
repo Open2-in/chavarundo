@@ -15,7 +15,7 @@ service cloud.firestore {
         && data.keys().size() >= 5 && data.keys().size() <= 25
         && data.userId is string && data.userId.size() > 0 && data.userId == request.auth.uid
         && data.encodedPath is string && data.encodedPath.size() <= 100000
-        && data.status in ["reported", "confirmed", "fixed"]
+        && data.status in ["reported", "confirmed", "fixed", "pending", "verified"]
         && data.severity in ["low", "medium", "high"]
         && (!("address" in data) || (data.address is string && data.address.size() <= 1000))
         && (!("notes" in data) || (data.notes is string && data.notes.size() <= 2000))

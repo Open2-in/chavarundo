@@ -9,6 +9,7 @@ import {
   useMapEvents,
   Polyline,
   Popup,
+  Circle,
 } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import L from "leaflet";
@@ -22,6 +23,7 @@ import { initClarity } from "../lib/clarity";
 import { getConstituency } from "../lib/constituency";
 import { getWardMember, type WardMember } from "../lib/ward-member";
 import { getMla, getMp, type PoliticianInfo } from "../lib/mla-mp";
+import { extractGPSFromJPEG } from "../lib/exif";
 import { useAuthStore } from "../lib/store";
 import { auth } from "../lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
@@ -97,6 +99,33 @@ const redMarkerIcon = L.divIcon({
   html: `<div class="w-4 h-4 bg-[#00f0ff] rounded-full border border-[#00f0ff]/50 shadow-[0_0_15px_#00f0ff] relative -left-2 -top-2"></div>`,
   iconSize: [0, 0],
 });
+
+function getDistanceMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371000; // Earth radius in meters
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+function clampToRadius(
+  center: { lat: number; lng: number },
+  target: { lat: number; lng: number },
+  maxRadiusMeters: number
+): { lat: number; lng: number } {
+  const dist = getDistanceMeters(center.lat, center.lng, target.lat, target.lng);
+  if (dist <= maxRadiusMeters) {
+    return target;
+  }
+  const ratio = maxRadiusMeters / dist;
+  const lat = center.lat + (target.lat - center.lat) * ratio;
+  const lng = center.lng + (target.lng - center.lng) * ratio;
+  return { lat, lng };
+}
 
 export default function LeafletWasteMap({ initialReports }: { initialReports?: any[] }) {
   const [reports, setReports] = useState<any[]>(initialReports ?? []);
@@ -189,6 +218,15 @@ export default function LeafletWasteMap({ initialReports }: { initialReports?: a
     return () => unsubscribe();
   }, []);
 
+  // Revamped Photo-based Reporting state
+  const [reportStep, setReportStep] = useState<number>(0); // 0 = inactive, 1 = photo select, 3 = map adjust, 4 = details form
+  const [reportImage, setReportImage] = useState<string | null>(null);
+  const [originalExifCoords, setOriginalExifCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [adjustedCoords, setAdjustedCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [isAIReviewing, setIsAIReviewing] = useState(false);
+  const [aiReviewResult, setAiReviewResult] = useState<{ success: boolean; verified: boolean; reasoning: string } | null>(null);
+  const [exifError, setExifError] = useState<string | null>(null);
+
   const cancelReporting = () => {
     setReportingMode(false);
     setOrigin(null);
@@ -196,6 +234,174 @@ export default function LeafletWasteMap({ initialReports }: { initialReports?: a
     setCurrentPathEncoded(null);
     setCurrentRouteDistance(null);
     setPointsConfirmed(false);
+    
+    // Clear new states
+    setReportStep(0);
+    setReportImage(null);
+    setOriginalExifCoords(null);
+    setAdjustedCoords(null);
+    setExifError(null);
+    setIsAIReviewing(false);
+    setAiReviewResult(null);
+  };
+
+  const handleReportPhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setExifError(null);
+    setReportImage(null);
+
+    try {
+      const isHeic = file.type === "image/heic" || file.type === "image/heif"
+        || file.name.toLowerCase().endsWith(".heic") || file.name.toLowerCase().endsWith(".heif");
+
+      let checkBlob: Blob = file;
+      if (isHeic) {
+        const heic2any = (await import("heic2any")).default;
+        const converted = await heic2any({ blob: file, toType: "image/jpeg", quality: 0.9 });
+        checkBlob = Array.isArray(converted) ? converted[0] : converted;
+      }
+
+      const img = new Image();
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          img.onload = () => {
+            const canvas = document.createElement("canvas");
+            const MAX = 800;
+            let w = img.width, h = img.height;
+            if (w > h) { if (w > MAX) { h *= MAX / w; w = MAX; } }
+            else { if (h > MAX) { w *= MAX / h; h = MAX; } }
+            canvas.width = w; canvas.height = h;
+            const ctx = canvas.getContext("2d");
+            if (ctx) {
+              ctx.drawImage(img, 0, 0, w, h);
+              const url = canvas.toDataURL("image/jpeg", 0.6);
+              resolve(url);
+            } else {
+              reject(new Error("canvas_error"));
+            }
+          };
+          img.onerror = () => reject(new Error("img_load"));
+          if (ev.target?.result) img.src = ev.target.result as string;
+        };
+        reader.readAsDataURL(checkBlob);
+      });
+
+      setReportImage(dataUrl);
+      setReportStep(3);
+    } catch (err: any) {
+      console.error(err);
+      setExifError("Failed to read image. Please try another photo.");
+    }
+  };
+
+  const handleReportSubmit = async (data: { name: string; severity: "low" | "medium" | "high"; notes: string }) => {
+    if (!adjustedCoords || !reportImage) return;
+
+    try {
+      let currentReporter = user;
+      if (!currentReporter) {
+        await loginAnonymously();
+        const { auth: firebaseAuth } = await import("../lib/firebase");
+        currentReporter = firebaseAuth.currentUser;
+      }
+      if (!currentReporter) throw new Error("Authentication failed");
+
+      const pt: [number, number] = [adjustedCoords.lat, adjustedCoords.lng];
+      const tiny: [number, number][] = [
+        [pt[0] - 0.00005, pt[1] - 0.00005],
+        [pt[0] + 0.00005, pt[1] + 0.00005],
+      ];
+      const encodedPath = encode(tiny, 5);
+
+      let displayAddress = "Unknown Location";
+      let districtVal: string | null = null;
+      let pincodeVal: string | null = null;
+      
+      try {
+        const adrRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${pt[0]}&lon=${pt[1]}&zoom=18&addressdetails=1`);
+        const adrData = await adrRes.json();
+        displayAddress = adrData.display_name || "Unknown Location";
+        districtVal = adrData.address?.state_district || adrData.address?.county || adrData.address?.city_district || null;
+        pincodeVal = adrData.address?.postcode || null;
+      } catch {}
+
+      const [constituency, roadInfo] = await Promise.all([
+        getConstituency(pt[0], pt[1]).catch(() => null),
+        fetchRoadClassification(pt[0], pt[1]).catch(() => null),
+      ]);
+
+      const payload: any = {
+        userId: currentReporter.uid,
+        userName: data.name.trim() || "Anonymous",
+        encodedPath,
+        createdAt: serverTimestamp(),
+        status: "pending",
+        severity: data.severity,
+        address: displayAddress,
+        imageUrl: reportImage,
+        upvoterIds: [],
+      };
+
+      if (currentReporter.photoURL) payload.userPhotoURL = currentReporter.photoURL;
+      if (districtVal) payload.district = districtVal;
+      if (pincodeVal) payload.pincode = pincodeVal;
+      if (data.notes.trim()) payload.notes = data.notes.trim();
+
+      if (constituency) {
+        payload.acName = constituency.acName;
+        payload.acNo = constituency.acNo;
+        payload.pcName = constituency.pcName;
+        if (constituency.lsgd) payload.lsgd = constituency.lsgd;
+        if (constituency.lsgdType) payload.lsgdType = constituency.lsgdType;
+        if (constituency.lsgdLabel) payload.lsgdLabel = constituency.lsgdLabel;
+        if (constituency.wardNo != null) payload.wardNo = constituency.wardNo;
+        if (constituency.wardName) payload.wardName = constituency.wardName;
+        if (constituency.secLsgCode) payload.secLsgCode = constituency.secLsgCode;
+      }
+      if (roadInfo) {
+        payload.highwayTag = roadInfo.highwayTag;
+        payload.roadAuthority = roadInfo.roadAuthority;
+      }
+
+      saveReporterName(data.name);
+
+      const docRef = await addDoc(collection(db, "waste_reports"), payload);
+      const reportId = docRef.id;
+
+      setIsAIReviewing(true);
+      setReportStep(0); // Hide detail form
+
+      const checkRes = await fetchWithAppCheck("/api/garbage/check", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ reportId }),
+      });
+
+      if (!checkRes.ok) {
+        throw new Error("AI service check request failed.");
+      }
+
+      const checkData = await checkRes.json();
+      setAiReviewResult({
+        success: checkData.success,
+        verified: checkData.verified,
+        reasoning: checkData.reasoning || "No explanation provided.",
+      });
+    } catch (e: any) {
+      console.error(e);
+      setAiReviewResult({
+        success: false,
+        verified: false,
+        reasoning: e.message || "An unexpected error occurred during submission.",
+      });
+    } finally {
+      setIsAIReviewing(false);
+    }
   };
 
   return (
@@ -222,6 +428,9 @@ export default function LeafletWasteMap({ initialReports }: { initialReports?: a
           pointsConfirmed={pointsConfirmed}
           setOrigin={(pos) => { setOrigin(pos); setDestination(null); setCurrentPathEncoded(null); setCurrentRouteDistance(null); setPointsConfirmed(false); setRouteError(null); }}
           setDestination={setDestination}
+          reportStep={reportStep}
+          originalExifCoords={originalExifCoords}
+          setAdjustedCoords={setAdjustedCoords}
         />
 
         {/* Existing Reports */}
@@ -237,6 +446,41 @@ export default function LeafletWasteMap({ initialReports }: { initialReports?: a
             setDetailReportId(null);
           }}
         />
+
+        {/* Step 3 marker adjustments & circle constraint */}
+        {reportStep === 3 && originalExifCoords && (
+          <Circle
+            center={[originalExifCoords.lat, originalExifCoords.lng]}
+            radius={30}
+            pathOptions={{
+              color: "#00f0ff",
+              fillColor: "#00f0ff",
+              fillOpacity: 0.15,
+              weight: 2,
+              dashArray: "5, 5",
+            }}
+          />
+        )}
+        {reportStep === 3 && adjustedCoords && (
+          <Marker
+            position={[adjustedCoords.lat, adjustedCoords.lng]}
+            draggable={true}
+            eventHandlers={{
+              dragend: (e) => {
+                const marker = e.target;
+                const position = marker.getLatLng();
+                if (originalExifCoords) {
+                  const clamped = clampToRadius(originalExifCoords, position, 30);
+                  setAdjustedCoords(clamped);
+                  marker.setLatLng([clamped.lat, clamped.lng]);
+                }
+              },
+            }}
+          />
+        )}
+        {reportStep === 3 && originalExifCoords && (
+          <MapFlyHandler coords={originalExifCoords} />
+        )}
 
         {/* Current Reporting Route — only after user confirms both points */}
         {reportingMode && origin && destination && (
@@ -271,10 +515,49 @@ export default function LeafletWasteMap({ initialReports }: { initialReports?: a
           severity={reportingSeverity}
           setSeverity={setReportingSeverity}
           onCancel={cancelReporting}
+          setReportStep={setReportStep}
         />
 
         <MapSearch />
       </MapContainer>
+
+      {reportStep === 1 && (
+        <PhotoCaptureModal
+          onClose={cancelReporting}
+          onPhotoSelected={handleReportPhotoChange}
+          errorMsg={exifError}
+          setErrorMsg={setExifError}
+          setCoords={(coords) => {
+            setOriginalExifCoords(coords);
+            setAdjustedCoords(coords);
+          }}
+        />
+      )}
+
+      {reportStep === 3 && (
+        <MapAdjustmentOverlay
+          onConfirm={() => setReportStep(4)}
+          onCancel={cancelReporting}
+        />
+      )}
+
+      {reportStep === 4 && reportImage && adjustedCoords && (
+        <SubmitReportForm
+          image={reportImage}
+          coords={adjustedCoords}
+          onCancel={cancelReporting}
+          onSubmit={handleReportSubmit}
+        />
+      )}
+
+      {(isAIReviewing || aiReviewResult) && reportImage && (
+        <AIReviewOverlay
+          image={reportImage}
+          isReviewing={isAIReviewing}
+          result={aiReviewResult}
+          onClose={cancelReporting}
+        />
+      )}
 
       {/* Control buttons — outside MapContainer for reliable rendering */}
       {mounted && (
@@ -411,6 +694,9 @@ function MapEventsHandler({
   pointsConfirmed,
   setOrigin,
   setDestination,
+  reportStep,
+  originalExifCoords,
+  setAdjustedCoords,
 }: {
   reportingMode: boolean;
   origin: { lat: number; lng: number } | null;
@@ -418,10 +704,21 @@ function MapEventsHandler({
   pointsConfirmed: boolean;
   setOrigin: (pos: { lat: number; lng: number }) => void;
   setDestination: (pos: { lat: number; lng: number }) => void;
+  reportStep: number;
+  originalExifCoords: { lat: number; lng: number } | null;
+  setAdjustedCoords: (pos: { lat: number; lng: number }) => void;
 }) {
   useMapEvents({
     click(e) {
-      if (!reportingMode || pointsConfirmed) return;
+      if (!reportingMode) return;
+
+      if (reportStep === 3 && originalExifCoords) {
+        const clamped = clampToRadius(originalExifCoords, e.latlng, 30);
+        setAdjustedCoords(clamped);
+        return;
+      }
+
+      if (pointsConfirmed) return;
       if (!origin) {
         setOrigin(e.latlng);
       } else if (!destination) {
@@ -1276,341 +1573,364 @@ function saveReporterName(name: string): void {
 }
 
 
-function GeoPhotoReportModal({ onClose }: { onClose: () => void }) {
-  const user = useAuthStore((state) => state.user);
-  const [step, setStep] = useState<"upload" | "form">("upload");
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [gpsCoords, setGpsCoords] = useState<{ lat: number; lng: number } | null>(null);
-  const [locationDenied, setLocationDenied] = useState(false);
+function PhotoCaptureModal({
+  onClose,
+  onPhotoSelected,
+  errorMsg,
+  setErrorMsg,
+  setCoords,
+}: {
+  onClose: () => void;
+  onPhotoSelected: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  errorMsg: string | null;
+  setErrorMsg: (msg: string | null) => void;
+  setCoords: (coords: { lat: number; lng: number }) => void;
+}) {
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const [isLocating, setIsLocating] = useState(false);
-  const [reporterName, setReporterName] = useState(
-    () => clampReporterName(getStoredReporterName() || user?.displayName || ""),
-  );
-  const reporterNameTouched = useRef(false);
-  // Auth may resolve after this modal mounts; fill the display name once if the
-  // field is still empty, there's no stored default, and the user hasn't typed.
-  useEffect(() => {
-    if (reporterNameTouched.current || reporterName || getStoredReporterName()) return;
-    if (user?.displayName) setReporterName(clampReporterName(user.displayName));
-  }, [user, reporterName]);
-  const [severity, setSeverity] = useState<"low" | "medium" | "high">("low");
-  const [notes, setNotes] = useState("");
-  const [address, setAddress] = useState<string>("Locating...");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setLocationDenied(false);
-    setErrorMsg(null);
-    setGpsCoords(null);
-    setImageUrl(null);
+  const handleUseCameraClick = () => {
     setIsLocating(true);
-
-    try {
-      const isHeic = file.type === "image/heic" || file.type === "image/heif"
-        || file.name.toLowerCase().endsWith(".heic") || file.name.toLowerCase().endsWith(".heif");
-
-      let renderBlob: Blob = file;
-      if (isHeic) {
-        const heic2any = (await import("heic2any")).default;
-        const converted = await heic2any({ blob: file, toType: "image/jpeg", quality: 0.9 });
-        renderBlob = Array.isArray(converted) ? converted[0] : converted;
-      }
-
-      const [dataUrl, coords] = await Promise.all([
-        new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = (ev) => {
-            const img = new Image();
-            img.onload = () => {
-              const canvas = document.createElement("canvas");
-              const MAX = 800;
-              let w = img.width, h = img.height;
-              if (w > h) { if (w > MAX) { h *= MAX / w; w = MAX; } }
-              else { if (h > MAX) { w *= MAX / h; h = MAX; } }
-              canvas.width = w; canvas.height = h;
-              const ctx = canvas.getContext("2d");
-              if (ctx) {
-                ctx.drawImage(img, 0, 0, w, h);
-                const url = canvas.toDataURL("image/jpeg", 0.6);
-                if (url.length > 800000) { reject(new Error("too_large")); return; }
-                resolve(url);
-              }
-            };
-            img.onerror = () => reject(new Error("img_load"));
-            if (ev.target?.result) img.src = ev.target.result as string;
-          };
-          reader.readAsDataURL(renderBlob);
-        }),
-        new Promise<{ lat: number; lng: number }>((resolve, reject) => {
-          if (!navigator.geolocation) { reject(new Error("no_geolocation")); return; }
-          navigator.geolocation.getCurrentPosition(
-            (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-            (err) => reject(err),
-            { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
-          );
-        }),
-      ]);
-
-      setImageUrl(dataUrl);
-      setGpsCoords(coords);
-
-      fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.lat}&lon=${coords.lng}&zoom=18&addressdetails=1`)
-        .then((r) => r.json())
-        .then((data) => setAddress(data.display_name || "Unknown Location"))
-        .catch(() => setAddress("Unknown Location"));
-
-      setStep("form");
-    } catch (err: any) {
-      if (err?.code === 1 || err?.message === "no_geolocation") {
-        setLocationDenied(true);
-      } else if (err?.message === "too_large") {
-        setErrorMsg("Image is too large after compression.");
-      } else {
-        setErrorMsg("Something went wrong. Please try again.");
-      }
-    } finally {
-      setIsLocating(false);
-    }
-  };
-
-  const submit = async () => {
-    if (!gpsCoords || !imageUrl) return;
-    setIsSubmitting(true);
     setErrorMsg(null);
-    try {
-      await loginAnonymously();
-      const { auth: firebaseAuth } = await import("../lib/firebase");
-      const currentUser = firebaseAuth.currentUser;
-      if (!currentUser) throw new Error("Auth failed");
 
-      const pt: [number, number] = [gpsCoords.lat, gpsCoords.lng];
-      const tiny: [number, number][] = [
-        [pt[0] - 0.00005, pt[1] - 0.00005],
-        [pt[0] + 0.00005, pt[1] + 0.00005],
-      ];
-      const encodedPath = encode(tiny, 5);
-
-      const [constituency, roadInfo] = await Promise.all([
-        getConstituency(gpsCoords.lat, gpsCoords.lng),
-        fetchRoadClassification(gpsCoords.lat, gpsCoords.lng),
-      ]);
-
-      const payload: any = {
-        userId: currentUser.uid,
-        userName: reporterName.trim() || "Anonymous",
-        encodedPath,
-        createdAt: serverTimestamp(),
-        status: "reported",
-        severity,
-        address,
-        imageUrl,
-        upvoterIds: [],
-      };
-      if (currentUser.photoURL) payload.userPhotoURL = currentUser.photoURL;
-      if (notes.trim()) payload.notes = notes.trim();
-      if (constituency) {
-        payload.acName = constituency.acName;
-        payload.acNo = constituency.acNo;
-        payload.pcName = constituency.pcName;
-        if (constituency.lsgd) payload.lsgd = constituency.lsgd;
-        if (constituency.lsgdType) payload.lsgdType = constituency.lsgdType;
-        if (constituency.lsgdLabel) payload.lsgdLabel = constituency.lsgdLabel;
-        if (constituency.wardNo != null) payload.wardNo = constituency.wardNo;
-        if (constituency.wardName) payload.wardName = constituency.wardName;
-        if (constituency.secLsgCode) payload.secLsgCode = constituency.secLsgCode;
-      }
-      if (roadInfo) {
-        payload.highwayTag = roadInfo.highwayTag;
-        payload.roadAuthority = roadInfo.roadAuthority;
-      }
-
-      saveReporterName(reporterName);
-      await addDoc(collection(db, "waste_reports"), payload);
-      onClose();
-    } catch (e) {
-      console.error(e);
-      setErrorMsg("Failed to submit. Please try again.");
-    } finally {
-      setIsSubmitting(false);
+    if (!navigator.geolocation) {
+      setIsLocating(false);
+      setErrorMsg("Geolocation is not supported by your browser.");
+      return;
     }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setIsLocating(false);
+        setCoords({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        });
+        cameraInputRef.current?.click();
+      },
+      (error) => {
+        setIsLocating(false);
+        let msg = "Failed to retrieve location. Please check your GPS settings and try again.";
+        if (error.code === error.PERMISSION_DENIED) {
+          msg = "Location permission denied. Please allow location access to capture the report location.";
+        } else if (error.code === error.POSITION_UNAVAILABLE) {
+          msg = "GPS signal unavailable. Please ensure location services are enabled on your device.";
+        } else if (error.code === error.TIMEOUT) {
+          msg = "Location request timed out. Please try again in an area with better GPS visibility.";
+        }
+        setErrorMsg(msg);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      }
+    );
   };
 
   return (
     <>
-      <div className="fixed inset-0 z-[2600] bg-black/50 dark:bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="fixed z-[2601] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(360px,92vw)] bg-white/98 dark:bg-black/95 border border-blue-200 dark:border-white/20 rounded-xl font-mono shadow-[0_4px_32px_rgba(0,0,0,0.12)] dark:shadow-[0_0_40px_rgba(255,255,255,0.05)] p-5 flex flex-col gap-4 max-h-[90vh] overflow-y-auto">
-        <div className="flex items-start justify-between gap-2">
-          <div className="text-[9px] uppercase tracking-widest text-blue-500/70 dark:text-white/40">Anonymous Report</div>
-          <button onClick={onClose} className="text-blue-400/60 dark:text-white/30 hover:text-blue-700 dark:hover:text-white/60 -mt-0.5">
-            <X className="w-4 h-4" />
+      <div className="fixed inset-0 z-[2600] bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="fixed z-[2601] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(380px,92vw)] bg-white/95 dark:bg-neutral-950/95 border border-cyan-500/40 rounded-2xl font-mono shadow-[0_0_30px_rgba(0,255,255,0.2)] p-6 flex flex-col gap-4">
+        <div className="flex items-center justify-between border-b border-cyan-500/20 pb-3">
+          <span className="text-[10px] uppercase font-bold tracking-widest text-cyan-500/80">Step 1: Capture Image</span>
+          <button onClick={onClose} className="text-neutral-400 hover:text-white transition-colors">
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        {step === "upload" && (
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-col gap-1">
-              <div className="text-sm font-bold text-blue-800 dark:text-white/80">Take a photo of the waste</div>
-              <p className="text-[11px] text-blue-600/70 dark:text-white/40 leading-relaxed">
-                Point your camera at the waste dump and take a photo. Your browser will ask for location permission — allow it so we can pin the exact spot.
-              </p>
-            </div>
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="w-full py-4 border border-dashed border-blue-300 dark:border-white/30 text-blue-500 dark:text-white/50 hover:text-blue-700 dark:hover:text-white/80 hover:border-blue-400 dark:hover:border-white/50 transition-colors rounded flex flex-col items-center gap-2 text-[11px]"
-            >
-              <Camera className="w-6 h-6" />
-              <span>Open Camera</span>
-            </button>
-            <input ref={fileInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhotoChange} />
-            {isLocating && (
-              <div className="flex items-center justify-center gap-2 py-3 text-[11px] text-blue-500 dark:text-white/50">
-                <svg className="w-4 h-4 animate-spin shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" strokeOpacity="0.25" /><path d="M12 2a10 10 0 0 1 10 10" /></svg>
-                Getting your location…
-              </div>
-            )}
-            {errorMsg && (
-              <div className="flex flex-col gap-2 bg-orange-500/10 border border-orange-500/30 rounded p-3">
-                <p className="text-[11px] text-orange-500 dark:text-orange-400 font-bold">{errorMsg}</p>
-                <button
-                  onClick={() => { setErrorMsg(null); fileInputRef.current?.click(); }}
-                  className="mt-1 w-full py-2 text-[10px] font-bold uppercase tracking-widest border border-blue-300 dark:border-white/20 text-blue-500 dark:text-white/50 hover:text-blue-700 dark:hover:text-white/80 hover:border-blue-400 dark:hover:border-white/40 transition-colors rounded"
-                >
-                  Try again
-                </button>
-              </div>
-            )}
-            {locationDenied && (() => {
-              const platform = getGeotagPlatform();
-              const instructions: Record<"ios" | "android" | "other", { title: string; steps: string[] }> = {
-                ios: {
-                  title: "Enable location for Safari on iPhone",
-                  steps: [
-                    "Open Settings → Safari → Location",
-                    'Set to "While Using the App" or "Ask"',
-                    "Come back here and try again",
-                  ],
-                },
-                android: {
-                  title: "Enable location for your browser",
-                  steps: [
-                    "Tap the lock icon in the browser address bar",
-                    'Tap "Permissions" → Location → Allow',
-                    "Come back here and try again",
-                  ],
-                },
-                other: {
-                  title: "Enable location in your browser",
-                  steps: [
-                    "Click the lock icon in the address bar",
-                    "Allow location access for this site",
-                    "Reload and try again",
-                  ],
-                },
-              };
-              const { title, steps } = instructions[platform];
-              return (
-                <div className="flex flex-col gap-2 bg-red-500/10 border border-red-500/30 rounded p-3">
-                  <p className="text-[11px] text-red-500 dark:text-red-400 font-bold">Location permission denied.</p>
-                  <p className="text-[10px] text-blue-600/70 dark:text-white/50 font-bold uppercase tracking-widest">{title}</p>
-                  <ol className="flex flex-col gap-1.5 list-decimal list-inside">
-                    {steps.map((s, i) => (
-                      <li key={i} className="text-[11px] text-blue-700/80 dark:text-white/60 leading-relaxed">{s}</li>
-                    ))}
-                  </ol>
-                  <button
-                    onClick={() => { setLocationDenied(false); fileInputRef.current?.click(); }}
-                    className="mt-1 w-full py-2 text-[10px] font-bold uppercase tracking-widest border border-blue-300 dark:border-white/20 text-blue-500 dark:text-white/50 hover:text-blue-700 dark:hover:text-white/80 hover:border-blue-400 dark:hover:border-white/40 transition-colors rounded"
-                  >
-                    Try again
-                  </button>
-                </div>
-              );
-            })()}
-          </div>
-        )}
+        <div className="flex flex-col gap-2 text-center my-2">
+          <h3 className="text-sm font-bold text-neutral-800 dark:text-neutral-100 uppercase tracking-wider">Report Waste Photo</h3>
+          <p className="text-[11px] text-neutral-500 dark:text-neutral-400 leading-relaxed">
+            Please capture a live photo of the garbage. We will record your direct GPS coordinates to mark the report location.
+          </p>
+        </div>
 
-        {step === "form" && imageUrl && gpsCoords && (
-          <div className="flex flex-col gap-4">
-            <img src={imageUrl} alt="Road Waste" className="w-full rounded object-cover max-h-40" />
+        <div className="flex flex-col gap-3">
+          {/* Camera Button */}
+          <button
+            onClick={handleUseCameraClick}
+            disabled={isLocating}
+            className={`w-full py-5 border border-dashed border-cyan-500/50 hover:border-cyan-400 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 font-bold uppercase tracking-widest text-[11px] transition-all rounded-xl flex flex-col items-center gap-2 ${
+              isLocating ? "opacity-60 cursor-not-allowed animate-pulse" : ""
+            }`}
+          >
+            <Camera className={`w-6 h-6 ${isLocating ? "animate-spin text-cyan-400" : "animate-pulse"}`} />
+            <span>{isLocating ? "Locating GPS..." : "Open Camera"}</span>
+          </button>
+          <input
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={onPhotoSelected}
+          />
+        </div>
 
-            <div className="flex flex-col gap-1">
-              <label className="text-[10px] uppercase font-bold tracking-widest text-blue-500/70 dark:text-white/40 border-l-2 border-blue-300 dark:border-white/30 pl-2">Location</label>
-              <p className="text-[10px] text-blue-700 dark:text-white/60 bg-blue-50 dark:bg-white/5 border border-blue-200 dark:border-white/10 p-2 rounded break-words">{address}</p>
-            </div>
-
-            <div className="flex flex-col gap-1">
-              <label className="text-[10px] uppercase font-bold tracking-widest text-blue-500/70 dark:text-white/40 border-l-2 border-blue-300 dark:border-white/30 pl-2">Reporting As (optional)</label>
-              <input
-                type="text"
-                value={reporterName}
-                onChange={(e) => {
-                  reporterNameTouched.current = true;
-                  setReporterName(clampReporterName(e.target.value));
-                }}
-                placeholder="Anonymous"
-                className="text-[11px] text-blue-800 dark:text-white/80 bg-blue-50 dark:bg-white/5 border border-blue-200 dark:border-white/20 p-2 rounded placeholder:text-blue-400/50 dark:placeholder:text-white/20 outline-none focus:border-blue-400 dark:focus:border-white/40"
-              />
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <label className="text-[10px] uppercase font-bold tracking-widest text-blue-500/70 dark:text-white/40 border-l-2 border-blue-300 dark:border-white/30 pl-2">Severity</label>
-              <div className="flex gap-2">
-                {(["low", "medium", "high"] as const).map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => setSeverity(s)}
-                    className={`flex-1 py-1.5 text-[10px] font-bold uppercase tracking-widest border transition-all rounded ${severity === s
-                      ? s === "low" ? "bg-[#00b4c8] dark:bg-[#00f0ff] text-black border-[#00b4c8] dark:border-[#00f0ff] dark:shadow-[0_0_10px_#00f0ff]"
-                        : s === "medium" ? "bg-[#ff9900] text-black border-[#ff9900] dark:shadow-[0_0_10px_#ff9900]"
-                          : "bg-[#ff003c] text-white dark:text-black border-[#ff003c] dark:shadow-[0_0_10px_#ff003c]"
-                      : s === "low" ? "bg-transparent text-[#00889a] dark:text-[#00f0ff] border-[#00889a]/50 dark:border-[#00f0ff]/40"
-                        : s === "medium" ? "bg-transparent text-[#cc7700] dark:text-[#ff9900] border-[#cc7700]/50 dark:border-[#ff9900]/40"
-                          : "bg-transparent text-[#cc002e] dark:text-[#ff003c] border-[#cc002e]/50 dark:border-[#ff003c]/40"
-                      }`}
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-1">
-              <label className="text-[10px] uppercase font-bold tracking-widest text-blue-500/70 dark:text-white/40 border-l-2 border-blue-300 dark:border-white/30 pl-2">Notes (optional)</label>
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value.slice(0, 500))}
-                placeholder="Describe the road waste / garbage..."
-                rows={2}
-                className="text-[11px] text-blue-800 dark:text-white/80 bg-blue-50 dark:bg-white/5 border border-blue-200 dark:border-white/20 p-2 rounded placeholder:text-blue-400/50 dark:placeholder:text-white/20 outline-none focus:border-blue-400 dark:focus:border-white/40 resize-none"
-              />
-            </div>
-
-            {errorMsg && <p className="text-[11px] text-red-500 dark:text-red-400">{errorMsg}</p>}
-
-            <div className="flex gap-2">
-              <button
-                onClick={() => setStep("upload")}
-                className="flex-1 py-2 text-[10px] font-bold uppercase tracking-widest border border-blue-300 dark:border-white/20 text-blue-500 dark:text-white/40 hover:text-blue-700 dark:hover:text-white/70 hover:border-blue-400 dark:hover:border-white/40 transition-colors rounded"
-              >
-                Back
-              </button>
-              <button
-                onClick={submit}
-                disabled={isSubmitting}
-                className="flex-1 py-2 text-[10px] font-bold uppercase tracking-widest bg-blue-600 dark:bg-white/10 border border-blue-600 dark:border-white/30 text-white dark:text-white/80 hover:bg-blue-700 dark:hover:bg-white/20 transition-colors rounded disabled:opacity-40"
-              >
-                {isSubmitting ? "Submitting..." : "Submit Report"}
-              </button>
-            </div>
+        {errorMsg && (
+          <div className="mt-2 bg-red-500/10 border border-red-500/30 rounded-xl p-3 flex flex-col gap-1 text-center">
+            <span className="text-[10px] uppercase font-bold text-red-500">GPS Error</span>
+            <p className="text-[10px] text-red-400 leading-relaxed">{errorMsg}</p>
           </div>
         )}
       </div>
     </>
   );
+}
+
+function MapAdjustmentOverlay({
+  onConfirm,
+  onCancel,
+}: {
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div className="absolute z-[9999] left-4 right-4 md:left-1/2 md:-translate-x-1/2 md:w-[320px] flex flex-col items-center font-mono pointer-events-auto shadow-[0_0_20px_rgba(0,0,0,0.5)]" style={{ top: "max(1rem, var(--sat))" }}>
+      <div className="bg-white/90 dark:bg-black/90 border border-cyan-500/60 w-full px-5 py-4 shadow-[0_0_25px_rgba(0,255,255,0.2)] backdrop-blur-md flex flex-col items-center text-center rounded-2xl relative">
+        <Navigation className="w-6 h-6 text-cyan-400 mb-2 animate-bounce" />
+        <h3 className="text-cyan-400 font-bold uppercase tracking-[0.15em] text-xs mb-1">Step 3: Adjust Location</h3>
+        <p className="text-neutral-500 dark:text-neutral-400 text-[9px] uppercase tracking-widest mb-4">
+          Drag the marker to the exact garbage spot (max 30m radius from original photo location)
+        </p>
+
+        <button
+          onClick={onConfirm}
+          className="w-full py-2.5 bg-cyan-500 hover:bg-cyan-400 text-black font-bold text-[11px] uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(0,255,255,0.4)] rounded-xl"
+        >
+          Confirm Location
+        </button>
+
+        <button onClick={onCancel} className="mt-3 text-[9px] text-neutral-400 hover:text-red-400 uppercase tracking-widest transition-colors">
+          [ Cancel ]
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function SubmitReportForm({
+  image,
+  coords,
+  onCancel,
+  onSubmit,
+}: {
+  image: string;
+  coords: { lat: number; lng: number };
+  onCancel: () => void;
+  onSubmit: (data: { name: string; severity: "low" | "medium" | "high"; notes: string }) => void;
+}) {
+  const user = useAuthStore((state) => state.user);
+  const [name, setName] = useState(() => clampReporterName(getStoredReporterName() || user?.displayName || user?.email || ""));
+  const [severity, setSeverity] = useState<"low" | "medium" | "high">("low");
+  const [notes, setNotes] = useState("");
+  const [address, setAddress] = useState("Locating...");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.lat}&lon=${coords.lng}&zoom=18&addressdetails=1`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (active) setAddress(data.display_name || "Unknown Location");
+      })
+      .catch(() => {
+        if (active) setAddress("Unknown Location");
+      });
+    return () => { active = false; };
+  }, [coords]);
+
+  const handleSubmit = () => {
+    setIsSubmitting(true);
+    onSubmit({ name, severity, notes });
+  };
+
+  return (
+    <div className="absolute z-[9999] left-4 right-4 md:left-1/2 md:-translate-x-1/2 md:w-[340px] flex flex-col items-center font-mono pointer-events-auto shadow-[0_0_20px_rgba(0,0,0,0.5)]" style={{ top: "max(1rem, var(--sat))" }}>
+      <div className="bg-white/90 dark:bg-black/90 border border-cyan-500/60 w-full px-5 py-5 shadow-[0_0_25px_rgba(0,255,255,0.2)] backdrop-blur-md flex flex-col gap-4 rounded-2xl max-h-[80vh] overflow-y-auto">
+        <div className="flex items-center justify-between border-b border-cyan-500/20 pb-2">
+          <span className="text-[10px] uppercase font-bold tracking-widest text-cyan-500/80">Step 4: Enter Details</span>
+          <span className="text-[9px] text-neutral-400">Waste Spot Details</span>
+        </div>
+
+        <img src={image} alt="Waste spot" className="w-full h-32 object-cover rounded-xl border border-neutral-800" />
+
+        <div className="flex flex-col gap-1 text-left">
+          <label className="text-[9px] uppercase font-bold tracking-widest text-cyan-500/60 pl-1">Location Address</label>
+          <p className="text-[10px] text-neutral-800 dark:text-neutral-200 bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-2.5 rounded-xl break-words leading-relaxed">{address}</p>
+        </div>
+
+        <div className="flex flex-col gap-1 text-left">
+          <label className="text-[9px] uppercase font-bold tracking-widest text-cyan-500/60 pl-1">Reporting As</label>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(clampReporterName(e.target.value))}
+            placeholder="Anonymous"
+            className="text-[10px] text-neutral-800 dark:text-neutral-200 bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-2.5 rounded-xl outline-none focus:border-cyan-500 transition-colors"
+          />
+        </div>
+
+        <div className="flex flex-col gap-2 text-left">
+          <label className="text-[9px] uppercase font-bold tracking-widest text-cyan-500/60 pl-1">Severity Level</label>
+          <div className="flex gap-2">
+            {(["low", "medium", "high"] as const).map((s) => (
+              <button
+                key={s}
+                onClick={() => setSeverity(s)}
+                className={`flex-1 py-1.5 text-[9px] font-bold uppercase tracking-widest border transition-all rounded-xl ${severity === s
+                  ? s === "low" ? "bg-[#00f0ff] text-black border-[#00f0ff] shadow-[0_0_10px_rgba(0,240,255,0.4)]"
+                    : s === "medium" ? "bg-[#ff9900] text-black border-[#ff9900] shadow-[0_0_10px_rgba(255,153,0,0.4)]"
+                      : "bg-[#ff003c] text-white border-[#ff003c] shadow-[0_0_10px_rgba(255,0,60,0.4)]"
+                  : "bg-transparent text-neutral-400 border-neutral-300 dark:border-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-900"
+                }`}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-1 text-left">
+          <div className="flex justify-between items-center pl-1 pr-1">
+            <label className="text-[9px] uppercase font-bold tracking-widest text-cyan-500/60">Optional Notes</label>
+            <span className="text-[8px] text-neutral-400">{notes.length}/200</span>
+          </div>
+          <textarea
+            maxLength={200}
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Describe the issue..."
+            className="bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-800 dark:text-neutral-200 text-[10px] p-2.5 rounded-xl outline-none focus:border-cyan-500 resize-none h-16 w-full leading-normal placeholder:text-neutral-500"
+          />
+        </div>
+
+        <div className="flex flex-col gap-2 mt-2">
+          <button
+            onClick={handleSubmit}
+            disabled={isSubmitting}
+            className="w-full py-3 text-black font-bold uppercase tracking-[0.15em] text-xs rounded-xl transition-all disabled:opacity-50"
+            style={{
+              backgroundColor: severity === "high" ? "#ff003c" : severity === "medium" ? "#ff9900" : "#00f0ff",
+              boxShadow: `0 0 15px ${severity === "high" ? "#ff003c" : severity === "medium" ? "#ff9900" : "#00f0ff"}80`,
+            }}
+          >
+            {isSubmitting ? "Submitting..." : "Submit for review"}
+          </button>
+          <button
+            onClick={onCancel}
+            disabled={isSubmitting}
+            className="text-[9px] text-neutral-400 hover:text-red-400 uppercase tracking-widest transition-colors py-1"
+          >
+            [ Cancel ]
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AIReviewOverlay({
+  image,
+  isReviewing,
+  result,
+  onClose,
+}: {
+  image: string;
+  isReviewing: boolean;
+  result: { success: boolean; verified: boolean; reasoning: string } | null;
+  onClose: () => void;
+}) {
+  return (
+    <>
+      <style>{`
+        @keyframes scanAnimation {
+          0% { top: 0%; }
+          50% { top: 100%; }
+          100% { top: 0%; }
+        }
+        .scanner-line-active {
+          animation: scanAnimation 2.5s linear infinite;
+        }
+      `}</style>
+      <div className="fixed inset-0 z-[2700] bg-black/70 backdrop-blur-md" />
+      <div className="fixed z-[2701] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(380px,92vw)] bg-neutral-950 border border-cyan-500/40 rounded-2xl font-mono shadow-[0_0_40px_rgba(0,255,255,0.25)] p-6 flex flex-col gap-5 text-center">
+        
+        {isReviewing ? (
+          <>
+            <div className="flex flex-col items-center">
+              <span className="relative flex h-3 w-3 mb-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-cyan-500"></span>
+              </span>
+              <span className="text-xs uppercase font-bold tracking-[0.2em] text-cyan-400 drop-shadow-[0_0_8px_#00f0ff]">AI Checking Report</span>
+              <span className="text-[9px] text-neutral-500 uppercase mt-1">Analyzing image for waste & garbage</span>
+            </div>
+
+            {/* Scan animation container */}
+            <div className="relative w-full h-44 rounded-xl border border-cyan-500/30 overflow-hidden bg-black flex items-center justify-center">
+              <img src={image} alt="Scanning" className="w-full h-full object-cover opacity-70" />
+              <div className="scanner-line-active absolute left-0 w-full h-0.5 bg-cyan-500 shadow-[0_0_8px_#00f0ff,0_0_15px_#00f0ff]" />
+            </div>
+
+            <div className="flex flex-col items-center gap-2 mt-1">
+              <div className="text-[10px] text-cyan-400/80 animate-pulse">RUNNING DEEP COMPUTER VISION SEGMENTATION…</div>
+              <div className="h-1 w-full bg-neutral-900 overflow-hidden rounded-full">
+                <div className="h-full bg-cyan-500" style={{ width: "60%" }} />
+              </div>
+            </div>
+          </>
+        ) : result ? (
+          <>
+            {result.verified ? (
+              <div className="flex flex-col items-center gap-1">
+                <CheckCircle className="w-12 h-12 text-green-400 drop-shadow-[0_0_10px_rgba(74,222,128,0.5)]" />
+                <span className="text-sm uppercase font-bold tracking-[0.2em] text-green-400 mt-2">AI VERIFIED SUCCESS</span>
+                <span className="text-[9px] text-neutral-500 uppercase">Garbage detected in photo evidence</span>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-1">
+                <div className="w-12 h-12 rounded-full border border-yellow-500/50 flex items-center justify-center text-yellow-500 font-bold text-2xl drop-shadow-[0_0_10px_rgba(234,179,8,0.5)]">!</div>
+                <span className="text-sm uppercase font-bold tracking-[0.2em] text-yellow-500 mt-2">PENDING MANUAL REVIEW</span>
+                <span className="text-[9px] text-neutral-500 uppercase">AI analysis clean or inconclusive</span>
+              </div>
+            )}
+
+            <div className="relative w-full max-h-32 rounded-xl border border-neutral-800 overflow-hidden bg-neutral-900/50">
+              <img src={image} alt="Reported spot" className="w-full h-full object-cover opacity-80 max-h-32" />
+            </div>
+
+            <div className="flex flex-col gap-1 text-left bg-neutral-900/50 border border-neutral-800 p-3 rounded-xl max-h-28 overflow-y-auto">
+              <span className="text-[8px] uppercase font-bold tracking-widest text-neutral-500">AI Assessment Reasoning:</span>
+              <p className="text-[10px] text-neutral-300 leading-relaxed italic">
+                "{result.reasoning}"
+              </p>
+            </div>
+
+            <button
+              onClick={onClose}
+              className={`w-full py-2.5 font-bold uppercase tracking-widest text-[11px] rounded-xl transition-all shadow-[0_0_12px_rgba(0,0,0,0.5)] ${
+                result.verified ? "bg-green-500 hover:bg-green-400 text-black shadow-[0_0_15px_rgba(74,222,128,0.3)]" : "bg-yellow-500 hover:bg-yellow-400 text-black shadow-[0_0_15px_rgba(234,179,8,0.3)]"
+              }`}
+            >
+              Finish & View Map
+            </button>
+          </>
+        ) : null}
+      </div>
+    </>
+  );
+}
+
+function MapFlyHandler({ coords }: { coords: { lat: number; lng: number } | null }) {
+  const map = useMap();
+  useEffect(() => {
+    if (coords) {
+      map.flyTo([coords.lat, coords.lng], 17, { duration: 1.2 });
+    }
+  }, [coords, map]);
+  return null;
 }
 
 function MiniMap({ reportId, encodedPath, severity, roadAuthority: initialRoadAuthority, highwayTag: initialHighwayTag }: { reportId: string; encodedPath: string; severity: string; roadAuthority?: string; highwayTag?: string }) {
@@ -2272,6 +2592,7 @@ function ReportingOverlay({
   severity,
   setSeverity,
   onCancel,
+  setReportStep,
 }: any) {
   const user = useAuthStore((state) => state.user);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -2411,7 +2732,14 @@ function ReportingOverlay({
               </div>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => user ? setReportingMode(true) : setShowSignInReportPrompt(true)}
+                  onClick={() => {
+                    if (user) {
+                      setReportingMode(true);
+                      setReportStep(1);
+                    } else {
+                      setShowSignInReportPrompt(true);
+                    }
+                  }}
                   className="bg-blue-600 dark:bg-cyan-500 hover:bg-blue-700 dark:hover:bg-cyan-400 text-white dark:text-black font-bold px-3 py-1.5 text-[10px] uppercase tracking-widest flex items-center gap-1 border border-blue-700 dark:border-cyan-400 dark:shadow-[0_0_10px_rgba(0,255,255,0.4)] transition-all"
                 >
                   <Plus className="w-3 h-3" /> Report
@@ -2491,71 +2819,18 @@ function ReportingOverlay({
         {showSignInReportPrompt && (
           <SignInToReportModal
             onClose={() => setShowSignInReportPrompt(false)}
-            onAnonymous={() => { setShowSignInReportPrompt(false); setShowGeoPhotoModal(true); }}
+            onAnonymous={() => {
+              setShowSignInReportPrompt(false);
+              setReportingMode(true);
+              setReportStep(1);
+            }}
           />
-        )}
-        {showGeoPhotoModal && (
-          <GeoPhotoReportModal onClose={() => setShowGeoPhotoModal(false)} />
         )}
       </>
     );
   }
 
-  return (
-    <div ref={overlayRef} className="absolute z-[9999] left-4 right-4 md:left-1/2 md:-translate-x-1/2 md:w-max md:max-w-[90vw] flex flex-col items-center flex-nowrap font-mono" style={{ top: "max(1rem, var(--sat))" }}>
-      <div className="bg-white/90 dark:bg-black/90 border border-blue-500/60 dark:border-cyan-500/60 w-full px-4 md:px-6 py-5 shadow-[0_0_25px_rgba(0,255,255,0.2)] backdrop-blur-md flex flex-col items-center text-center relative pointer-events-auto max-h-[80vh] overflow-y-auto">
-        <div className="absolute bottom-0 left-0 w-full h-[2px] bg-blue-50 dark:bg-cyan-500 shadow-[0_0_10px_rgba(0,255,255,1)]"></div>
-
-        {!origin ? (
-          <>
-            <Navigation className="w-6 h-6 text-blue-600 dark:text-cyan-400 mb-3 animate-pulse" />
-            <h3 className="text-blue-600 dark:text-cyan-400 font-bold uppercase tracking-[0.15em] mb-1">Step 1: Start Point</h3>
-            <p className="text-blue-700/60 dark:text-cyan-500/60 text-[10px] uppercase tracking-widest">&gt; tap map where waste starts</p>
-          </>
-        ) : !destination ? (
-          <>
-            <Navigation className="w-6 h-6 text-blue-600 dark:text-cyan-400 mb-3 animate-pulse" />
-            <h3 className="text-blue-600 dark:text-cyan-400 font-bold uppercase tracking-[0.15em] mb-1">Step 2: End Point</h3>
-            <p className="text-blue-700/60 dark:text-cyan-500/60 text-[10px] uppercase tracking-widest">&gt; tap map where waste ends</p>
-          </>
-        ) : !pointsConfirmed ? (
-          <>
-            <Navigation className="w-6 h-6 text-blue-600 dark:text-cyan-400 mb-3" />
-            <h3 className="text-blue-600 dark:text-cyan-400 font-bold uppercase tracking-[0.15em] mb-1">Points Selected</h3>
-            <p className="text-blue-700/60 dark:text-cyan-500/60 text-[10px] uppercase tracking-widest mb-4">&gt; tap map to reselect start point</p>
-            {routeError ? (
-              <div className="w-full py-2 px-3 bg-red-500/10 border border-red-500/40 text-red-400 text-[10px] uppercase tracking-widest text-center leading-relaxed">
-                {routeError}
-              </div>
-            ) : (
-              <button
-                onClick={onConfirmPoints}
-                disabled={!currentPathEncoded}
-                className="w-full py-2.5 bg-blue-50 dark:bg-cyan-500 hover:bg-blue-50 dark:bg-cyan-400 disabled:bg-blue-100 dark:bg-cyan-900 disabled:text-blue-800 dark:text-cyan-600 text-black font-bold text-[11px] uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(0,255,255,0.4)] disabled:shadow-none"
-              >
-                {currentPathEncoded ? "Confirm Points" : "Calculating route…"}
-              </button>
-            )}
-          </>
-        ) : (
-          <SubmitRouteForm
-            currentPathEncoded={currentPathEncoded}
-            currentRouteDistance={currentRouteDistance}
-            origin={origin}
-            severity={severity}
-            setSeverity={setSeverity}
-            onCancel={onCancel}
-          />
-        )}
-
-        {!pointsConfirmed && (
-          <button onClick={onCancel} className="mt-6 text-[10px] text-blue-700/50 dark:text-cyan-500/50 hover:text-red-400 uppercase tracking-widest transition-colors">
-            [ CANCEL ]
-          </button>
-        )}
-      </div>
-    </div>
-  );
+  return null;
 }
 
 const ROAD_AUTHORITY_MAP: Record<string, { label: string; authority: string; color: string }> = {

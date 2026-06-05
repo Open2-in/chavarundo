@@ -19,7 +19,14 @@ function severityLabel(s: string) {
   return { low: "LOW", medium: "MEDIUM", high: "HIGH" }[s] ?? s.toUpperCase();
 }
 function statusLabel(s: string) {
-  return { reported: "REPORTED", confirmed: "CONFIRMED", fixed: "FIXED" }[s] ?? s.toUpperCase();
+  const map: Record<string, string> = {
+    reported: "REPORTED",
+    confirmed: "CONFIRMED",
+    fixed: "FIXED",
+    pending: "PENDING REVIEW",
+    verified: "VERIFIED",
+  };
+  return map[s] ?? s.toUpperCase();
 }
 function formatDate(ts: { toDate?: () => Date } | null): string {
   if (!ts?.toDate) return "";

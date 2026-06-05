@@ -24,7 +24,14 @@ function severityColor(s: WasteReport["severity"]) {
   return { low: "#22c55e", medium: "#f59e0b", high: "#ef4444" }[s] ?? "#94a3b8";
 }
 function statusLabel(s: WasteReport["status"]) {
-  return { reported: "Reported", confirmed: "Confirmed", fixed: "Fixed" }[s] ?? s;
+  const map: Record<string, string> = {
+    reported: "Reported",
+    confirmed: "Confirmed",
+    fixed: "Fixed",
+    pending: "Pending Review",
+    verified: "Verified",
+  };
+  return map[s as string] ?? s;
 }
 
 /** Decode polyline and return the midpoint coordinate */

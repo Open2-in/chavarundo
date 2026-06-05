@@ -29,7 +29,7 @@ export interface WasteReport {
   encodedPath: string;
   createdAt: FSTimestamp | null;
   severity: "low" | "medium" | "high";
-  status: "reported" | "confirmed" | "fixed";
+  status: "reported" | "confirmed" | "fixed" | "pending" | "verified";
   address: string;
   district: string;
   pincode?: string;
@@ -82,8 +82,6 @@ function getServiceAccount(): ServiceAccount {
     );
   }
 
-  // The env var is base64-encoded JSON. JSON.parse restores the `\n` escapes
-  // inside private_key to real newlines.
   const sa = JSON.parse(base64ToUtf8(key)) as ServiceAccount;
   cachedServiceAccount = sa;
   return sa;
@@ -94,7 +92,7 @@ function getServiceAccount(): ServiceAccount {
 // ---------------------------------------------------------------------------
 
 function base64ToBytes(b64: string): Uint8Array {
-  const bin = atob(b64);
+  const bin = atob(b64.replace(/\s/g, ""));
   const bytes = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
   return bytes;
@@ -385,5 +383,43 @@ export async function getAllReportStubs(): Promise<{ id: string; updatedAt: Date
   } catch (err) {
     console.error("[firebase-server] getAllReportStubs error:", err);
     return [];
+  }
+}
+
+// ---------------------------------------------------------------------------
+// updateReportStatus — update a report document status
+// ---------------------------------------------------------------------------
+
+export async function updateReportStatus(
+  id: string,
+  status: "reported" | "confirmed" | "fixed" | "pending" | "verified"
+): Promise<boolean> {
+  try {
+    const token = await getAccessToken();
+    const res = await fetch(
+      `${restBase()}/waste_reports/${encodeURIComponent(id)}?updateMask.fieldPaths=status`,
+      {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          fields: {
+            status: { stringValue: status },
+          },
+        }),
+      }
+    );
+
+    if (!res.ok) {
+      const detail = await res.text().catch(() => "");
+      console.error(`[firebase-server] updateReportStatus failed: ${res.status} ${detail}`);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error("[firebase-server] updateReportStatus error:", err);
+    return false;
   }
 }
