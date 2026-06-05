@@ -45,6 +45,14 @@
           "type": "array",
           "items": { "type": "string" },
           "description": "List of user UIDs who downvoted this report"
+        },
+        "latitude": {
+          "type": "number",
+          "description": "Latitude coordinate of the point report"
+        },
+        "longitude": {
+          "type": "number",
+          "description": "Longitude coordinate of the point report"
         }
       },
       "required": ["userId", "encodedPath", "createdAt", "status", "severity"]

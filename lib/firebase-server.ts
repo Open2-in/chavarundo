@@ -27,6 +27,8 @@ export interface WasteReport {
   userName: string;
   userPhotoURL?: string;
   encodedPath: string;
+  latitude?: number;
+  longitude?: number;
   createdAt: FSTimestamp | null;
   severity: "low" | "medium" | "high";
   status: "reported" | "confirmed" | "fixed" | "pending" | "verified";

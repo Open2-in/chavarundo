@@ -100,6 +100,21 @@ const redMarkerIcon = L.divIcon({
   iconSize: [0, 0],
 });
 
+const createDotIcon = (color: string, severity: string, isSelected = false) => {
+  const icon = L.divIcon({
+    className: "bg-transparent",
+    html: `
+      <div class="marker-pulse-container relative -left-1.5 -top-1.5" data-severity="${severity}">
+        ${isSelected ? "" : `<div class="marker-pulse-ring" style="background-color: ${color};"></div>`}
+        <div class="marker-pulse-dot" style="background-color: ${color}; box-shadow: 0 0 10px ${color};"></div>
+      </div>
+    `,
+    iconSize: [0, 0],
+  });
+  (icon.options as any).severity = severity;
+  return icon;
+};
+
 function getDistanceMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371000; // Earth radius in meters
   const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -310,11 +325,7 @@ export default function LeafletWasteMap({ initialReports }: { initialReports?: a
       if (!currentReporter) throw new Error("Authentication failed");
 
       const pt: [number, number] = [adjustedCoords.lat, adjustedCoords.lng];
-      const tiny: [number, number][] = [
-        [pt[0] - 0.00005, pt[1] - 0.00005],
-        [pt[0] + 0.00005, pt[1] + 0.00005],
-      ];
-      const encodedPath = encode(tiny, 5);
+      const encodedPath = encode([pt], 5);
 
       let displayAddress = "Unknown Location";
       let districtVal: string | null = null;
@@ -337,6 +348,8 @@ export default function LeafletWasteMap({ initialReports }: { initialReports?: a
         userId: currentReporter.uid,
         userName: data.name.trim() || "Anonymous",
         encodedPath,
+        latitude: pt[0],
+        longitude: pt[1],
         createdAt: serverTimestamp(),
         status: "pending",
         severity: data.severity,
@@ -860,9 +873,14 @@ function RenderReports({
     };
     if (report.encodedPath) {
       const path = decode(report.encodedPath) as [number, number][];
-      const bounds = L.latLngBounds(path);
-      map.flyToBounds(bounds, { padding: [80, 80], duration: 1.2 });
-      map.once("moveend", openPopup);
+      if (path.length <= 1) {
+        map.flyTo(path[0], 16, { duration: 1.2 });
+        map.once("moveend", openPopup);
+      } else {
+        const bounds = L.latLngBounds(path);
+        map.flyToBounds(bounds, { padding: [80, 80], duration: 1.2 });
+        map.once("moveend", openPopup);
+      }
     } else {
       openPopup();
     }
@@ -1011,21 +1029,6 @@ function RenderReports({
     } catch (error) {
       console.error("Error voting: ", error);
     }
-  };
-
-  const createDotIcon = (color: string, severity: string, isSelected = false) => {
-    const icon = L.divIcon({
-      className: "bg-transparent",
-      html: `
-        <div class="marker-pulse-container relative -left-1.5 -top-1.5" data-severity="${severity}">
-          ${isSelected ? "" : `<div class="marker-pulse-ring" style="background-color: ${color};"></div>`}
-          <div class="marker-pulse-dot" style="background-color: ${color}; box-shadow: 0 0 10px ${color};"></div>
-        </div>
-      `,
-      iconSize: [0, 0],
-    });
-    (icon.options as any).severity = severity;
-    return icon;
   };
 
   const showPolylines = zoom >= 14;
@@ -1433,6 +1436,7 @@ function RenderReports({
             const path = decode(report.encodedPath).map(
               ([lat, lng]) => [lat, lng] as [number, number],
             );
+            if (path.length <= 1) return null;
             const displaySeverity =
               editingId === report.id ? editSeverity : report.severity;
             return (
@@ -1966,12 +1970,18 @@ function MiniMap({ reportId, encodedPath, severity, roadAuthority: initialRoadAu
     ).addTo(map);
 
     const color = getColor(severity);
-    L.polyline(coords, {
-      color, weight: 5, opacity: 0.9,
-      className: severity === "high" ? "animated-polyline-high" : "animated-polyline",
-    }).addTo(map);
-
-    map.fitBounds(L.latLngBounds(coords), { padding: [10, 10], animate: false });
+    if (coords.length === 1) {
+      L.marker(coords[0], {
+        icon: createDotIcon(color, severity, false)
+      }).addTo(map);
+      map.setView(coords[0], 16, { animate: false });
+    } else {
+      L.polyline(coords, {
+        color, weight: 5, opacity: 0.9,
+        className: severity === "high" ? "animated-polyline-high" : "animated-polyline",
+      }).addTo(map);
+      map.fitBounds(L.latLngBounds(coords), { padding: [10, 10], animate: false });
+    }
 
     return () => {
       map.remove();
@@ -2124,13 +2134,9 @@ function ReportDetailSheet({ report, ac: initialAc, user, onVote, onClose, onSel
       const ctx = canvas.getContext("2d")!;
       ctx.fillStyle = "#0f172a";
       ctx.fillRect(0, 0, 800, 400);
-      const lats = path.map(([lat]) => lat);
-      const lngs = path.map(([, lng]) => lng);
-      const minLat = Math.min(...lats), maxLat = Math.max(...lats);
-      const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
+
       const pad = 60, w = 800 - pad * 2, h = 400 - pad * 2;
-      const toX = (lng: number) => pad + ((lng - minLng) / (maxLng - minLng || 0.0001)) * w;
-      const toY = (lat: number) => pad + (1 - (lat - minLat) / (maxLat - minLat || 0.0001)) * h;
+
       // Grid lines
       ctx.strokeStyle = "rgba(0,255,255,0.05)";
       ctx.lineWidth = 1;
@@ -2138,22 +2144,51 @@ function ReportDetailSheet({ report, ac: initialAc, user, onVote, onClose, onSel
         const x = pad + (w / 4) * i; ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 400); ctx.stroke();
         const y = pad + (h / 4) * i; ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(800, y); ctx.stroke();
       }
-      // Glow pass
-      ctx.shadowColor = color; ctx.shadowBlur = 20;
-      ctx.strokeStyle = color; ctx.lineWidth = 6; ctx.lineCap = "round"; ctx.lineJoin = "round";
-      ctx.beginPath();
-      path.forEach(([lat, lng], i) => i === 0 ? ctx.moveTo(toX(lng), toY(lat)) : ctx.lineTo(toX(lng), toY(lat)));
-      ctx.stroke();
-      // Solid pass
-      ctx.shadowBlur = 0; ctx.lineWidth = 3;
-      ctx.beginPath();
-      path.forEach(([lat, lng], i) => i === 0 ? ctx.moveTo(toX(lng), toY(lat)) : ctx.lineTo(toX(lng), toY(lat)));
-      ctx.stroke();
-      // Endpoints
-      ctx.shadowColor = color; ctx.shadowBlur = 12; ctx.fillStyle = color;
-      [[path[0][0], path[0][1]], [path[path.length - 1][0], path[path.length - 1][1]]].forEach(([lat, lng]) => {
-        ctx.beginPath(); ctx.arc(toX(lng), toY(lat), 7, 0, Math.PI * 2); ctx.fill();
-      });
+
+      if (path.length === 1) {
+        // Draw a glowing point at the center of the canvas
+        const cx = 400;
+        const cy = 200;
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 20;
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 12, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.arc(cx, cy, 6, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        const lats = path.map(([lat]) => lat);
+        const lngs = path.map(([, lng]) => lng);
+        const minLat = Math.min(...lats), maxLat = Math.max(...lats);
+        const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
+        const toX = (lng: number) => pad + ((lng - minLng) / (maxLng - minLng || 0.0001)) * w;
+        const toY = (lat: number) => pad + (1 - (lat - minLat) / (maxLat - minLat || 0.0001)) * h;
+
+        // Glow pass
+        ctx.shadowColor = color; ctx.shadowBlur = 20;
+        ctx.strokeStyle = color; ctx.lineWidth = 6; ctx.lineCap = "round"; ctx.lineJoin = "round";
+        ctx.beginPath();
+        path.forEach(([lat, lng], i) => i === 0 ? ctx.moveTo(toX(lng), toY(lat)) : ctx.lineTo(toX(lng), toY(lat)));
+        ctx.stroke();
+
+        // Solid pass
+        ctx.shadowBlur = 0; ctx.lineWidth = 3;
+        ctx.beginPath();
+        path.forEach(([lat, lng], i) => i === 0 ? ctx.moveTo(toX(lng), toY(lat)) : ctx.lineTo(toX(lng), toY(lat)));
+        ctx.stroke();
+
+        // Endpoints
+        ctx.shadowColor = color; ctx.shadowBlur = 12; ctx.fillStyle = color;
+        [[path[0][0], path[0][1]], [path[path.length - 1][0], path[path.length - 1][1]]].forEach(([lat, lng]) => {
+          ctx.beginPath(); ctx.arc(toX(lng), toY(lat), 7, 0, Math.PI * 2); ctx.fill();
+        });
+      }
+
       // Watermark
       ctx.shadowBlur = 0; ctx.fillStyle = "rgba(0,255,255,0.3)";
       ctx.font = "bold 13px monospace"; ctx.fillText("chavarundo.open2.in", pad, 400 - 16);
@@ -2985,6 +3020,8 @@ function SubmitRouteForm({
         userId: user.uid,
         userName: reporterName.trim() || user.displayName || user.email || "Anonymous",
         encodedPath: currentPathEncoded,
+        latitude: mid[0],
+        longitude: mid[1],
         createdAt: serverTimestamp(),
         status: "reported",
         severity,
