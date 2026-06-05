@@ -239,7 +239,9 @@ export default function LeafletWasteMap({ initialReports }: { initialReports?: a
   const [originalExifCoords, setOriginalExifCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [adjustedCoords, setAdjustedCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [isAIReviewing, setIsAIReviewing] = useState(false);
-  const [aiReviewResult, setAiReviewResult] = useState<{ success: boolean; verified: boolean; reasoning: string } | null>(null);
+  const [reviewPhase, setReviewPhase] = useState<'road' | 'ai'>('road');
+  const [submittedReportId, setSubmittedReportId] = useState<string | null>(null);
+  const [aiReviewResult, setAiReviewResult] = useState<{ success: boolean; verified: boolean; reasoning: string; phase?: 'road' | 'ai' } | null>(null);
   const [exifError, setExifError] = useState<string | null>(null);
 
   const cancelReporting = () => {
@@ -258,6 +260,7 @@ export default function LeafletWasteMap({ initialReports }: { initialReports?: a
     setExifError(null);
     setIsAIReviewing(false);
     setAiReviewResult(null);
+    setSubmittedReportId(null);
   };
 
   const handleReportPhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -327,23 +330,7 @@ export default function LeafletWasteMap({ initialReports }: { initialReports?: a
       const pt: [number, number] = [adjustedCoords.lat, adjustedCoords.lng];
       const encodedPath = encode([pt], 5);
 
-      let displayAddress = "Unknown Location";
-      let districtVal: string | null = null;
-      let pincodeVal: string | null = null;
-      
-      try {
-        const adrRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${pt[0]}&lon=${pt[1]}&zoom=18&addressdetails=1`);
-        const adrData = await adrRes.json();
-        displayAddress = adrData.display_name || "Unknown Location";
-        districtVal = adrData.address?.state_district || adrData.address?.county || adrData.address?.city_district || null;
-        pincodeVal = adrData.address?.postcode || null;
-      } catch {}
-
-      const [constituency, roadInfo] = await Promise.all([
-        getConstituency(pt[0], pt[1]).catch(() => null),
-        fetchRoadClassification(pt[0], pt[1]).catch(() => null),
-      ]);
-
+      // Minimal payload — enrichment (address, constituency, road) runs after AI review
       const payload: any = {
         userId: currentReporter.uid,
         userName: data.name.trim() || "Anonymous",
@@ -353,40 +340,48 @@ export default function LeafletWasteMap({ initialReports }: { initialReports?: a
         createdAt: serverTimestamp(),
         status: "pending",
         severity: data.severity,
-        address: displayAddress,
         imageUrl: reportImage,
         upvoterIds: [],
       };
 
       if (currentReporter.photoURL) payload.userPhotoURL = currentReporter.photoURL;
-      if (districtVal) payload.district = districtVal;
-      if (pincodeVal) payload.pincode = pincodeVal;
       if (data.notes.trim()) payload.notes = data.notes.trim();
-
-      if (constituency) {
-        payload.acName = constituency.acName;
-        payload.acNo = constituency.acNo;
-        payload.pcName = constituency.pcName;
-        if (constituency.lsgd) payload.lsgd = constituency.lsgd;
-        if (constituency.lsgdType) payload.lsgdType = constituency.lsgdType;
-        if (constituency.lsgdLabel) payload.lsgdLabel = constituency.lsgdLabel;
-        if (constituency.wardNo != null) payload.wardNo = constituency.wardNo;
-        if (constituency.wardName) payload.wardName = constituency.wardName;
-        if (constituency.secLsgCode) payload.secLsgCode = constituency.secLsgCode;
-      }
-      if (roadInfo) {
-        payload.highwayTag = roadInfo.highwayTag;
-        payload.roadAuthority = roadInfo.roadAuthority;
-      }
 
       saveReporterName(data.name);
 
       const docRef = await addDoc(collection(db, "waste_reports"), payload);
       const reportId = docRef.id;
+      setSubmittedReportId(reportId);
 
       setIsAIReviewing(true);
       setReportStep(0); // Hide detail form
 
+      // ── Step 1: Road proximity check (must be within 50 m of a public road) ──
+      setReviewPhase('road');
+      try {
+        const nearestRes = await fetch(
+          `https://router.project-osrm.org/nearest/v1/driving/${pt[1]},${pt[0]}?number=1`
+        );
+        if (nearestRes.ok) {
+          const nearestData = await nearestRes.json();
+          const distToRoad: number = nearestData.waypoints?.[0]?.distance ?? 0;
+          if (distToRoad > 50) {
+            setAiReviewResult({
+              success: false,
+              verified: false,
+              reasoning: `The marked location is ${Math.round(distToRoad)} m from the nearest public road. Reports must be placed within 50 m of a road.`,
+              phase: 'road',
+            });
+            return; // Skip AI check — finally will clear isAIReviewing
+          }
+        }
+      } catch {
+        // Road check network error — log and proceed to AI check anyway
+        console.warn("Road proximity check failed (network), proceeding with AI check.");
+      }
+
+      // ── Step 2: AI garbage verification ──
+      setReviewPhase('ai');
       const checkRes = await fetchWithAppCheck("/api/garbage/check", {
         method: "POST",
         headers: {
@@ -404,6 +399,7 @@ export default function LeafletWasteMap({ initialReports }: { initialReports?: a
         success: checkData.success,
         verified: checkData.verified,
         reasoning: checkData.reasoning || "No explanation provided.",
+        phase: 'ai',
       });
     } catch (e: any) {
       console.error(e);
@@ -411,9 +407,92 @@ export default function LeafletWasteMap({ initialReports }: { initialReports?: a
         success: false,
         verified: false,
         reasoning: e.message || "An unexpected error occurred during submission.",
+        phase: reviewPhase,
       });
     } finally {
       setIsAIReviewing(false);
+    }
+  };
+
+  // Retake: delete the failed record, go back to photo capture (step 1)
+  const handleRetakeImage = async () => {
+    if (submittedReportId) {
+      try {
+        await deleteDoc(doc(db, "waste_reports", submittedReportId));
+      } catch (e) {
+        console.error("Failed to delete report during retake:", e);
+      }
+    }
+    setAiReviewResult(null);
+    setIsAIReviewing(false);
+    setReportImage(null);
+    setOriginalExifCoords(null);
+    setAdjustedCoords(null);
+    setSubmittedReportId(null);
+    setReportStep(1); // Back to photo capture
+  };
+
+  // Cancel: delete the failed record, exit entirely
+  const handleDeleteAndCancel = async () => {
+    if (submittedReportId) {
+      try {
+        await deleteDoc(doc(db, "waste_reports", submittedReportId));
+      } catch (e) {
+        console.error("Failed to delete report on cancel:", e);
+      }
+    }
+    cancelReporting();
+  };
+
+  // Confirm (Send for Review / Request Review): enrich the record in background then close
+  const handleConfirmReport = async () => {
+    const reportId = submittedReportId;
+    const coords = adjustedCoords;
+    cancelReporting(); // Reset UI immediately — enrichment runs in background
+
+    if (!reportId || !coords) return;
+
+    try {
+      const pt: [number, number] = [coords.lat, coords.lng];
+      const [adrData, constituency, roadInfo] = await Promise.all([
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${pt[0]}&lon=${pt[1]}&zoom=18&addressdetails=1`)
+          .then((r) => r.json())
+          .catch(() => null),
+        getConstituency(pt[0], pt[1]).catch(() => null),
+        fetchRoadClassification(pt[0], pt[1]).catch(() => null),
+      ]);
+
+      const updates: any = {};
+      if (adrData?.display_name) updates.address = adrData.display_name;
+      const districtVal =
+        adrData?.address?.state_district ||
+        adrData?.address?.county ||
+        adrData?.address?.city_district ||
+        null;
+      if (districtVal) updates.district = districtVal;
+      if (adrData?.address?.postcode) updates.pincode = adrData.address.postcode;
+
+      if (constituency) {
+        updates.acName = constituency.acName;
+        updates.acNo = constituency.acNo;
+        updates.pcName = constituency.pcName;
+        if (constituency.lsgd) updates.lsgd = constituency.lsgd;
+        if (constituency.lsgdType) updates.lsgdType = constituency.lsgdType;
+        if (constituency.lsgdLabel) updates.lsgdLabel = constituency.lsgdLabel;
+        if (constituency.wardNo != null) updates.wardNo = constituency.wardNo;
+        if (constituency.wardName) updates.wardName = constituency.wardName;
+        if (constituency.secLsgCode) updates.secLsgCode = constituency.secLsgCode;
+      }
+      if (roadInfo) {
+        updates.highwayTag = roadInfo.highwayTag;
+        updates.roadAuthority = roadInfo.roadAuthority;
+      }
+
+      if (Object.keys(updates).length > 0) {
+        await updateDoc(doc(db, "waste_reports", reportId), updates);
+      }
+    } catch (e) {
+      console.error("Post-review enrichment failed:", e);
     }
   };
 
@@ -568,8 +647,11 @@ export default function LeafletWasteMap({ initialReports }: { initialReports?: a
         <AIReviewOverlay
           image={reportImage}
           isReviewing={isAIReviewing}
+          reviewPhase={reviewPhase}
           result={aiReviewResult}
-          onClose={cancelReporting}
+          onConfirm={handleConfirmReport}
+          onRetake={handleRetakeImage}
+          onCancel={handleDeleteAndCancel}
         />
       )}
 
@@ -1839,13 +1921,19 @@ function SubmitReportForm({
 function AIReviewOverlay({
   image,
   isReviewing,
+  reviewPhase,
   result,
-  onClose,
+  onConfirm,
+  onRetake,
+  onCancel,
 }: {
   image: string;
   isReviewing: boolean;
-  result: { success: boolean; verified: boolean; reasoning: string } | null;
-  onClose: () => void;
+  reviewPhase: 'road' | 'ai';
+  result: { success: boolean; verified: boolean; reasoning: string; phase?: 'road' | 'ai' } | null;
+  onConfirm: () => void;
+  onRetake: () => void;
+  onCancel: () => void;
 }) {
   return (
     <>
@@ -1869,8 +1957,14 @@ function AIReviewOverlay({
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-3 w-3 bg-cyan-500"></span>
               </span>
-              <span className="text-xs uppercase font-bold tracking-[0.2em] text-cyan-400 drop-shadow-[0_0_8px_#00f0ff]">AI Checking Report</span>
-              <span className="text-[9px] text-neutral-500 uppercase mt-1">Analyzing image for waste & garbage</span>
+              <span className="text-xs uppercase font-bold tracking-[0.2em] text-cyan-400 drop-shadow-[0_0_8px_#00f0ff]">
+                {reviewPhase === 'road' ? 'Checking Road Location' : 'AI Checking Report'}
+              </span>
+              <span className="text-[9px] text-neutral-500 uppercase mt-1">
+                {reviewPhase === 'road'
+                  ? 'Verifying location is within 50 m of a public road'
+                  : 'Analyzing image for waste & garbage'}
+              </span>
             </div>
 
             {/* Scan animation container */}
@@ -1880,7 +1974,9 @@ function AIReviewOverlay({
             </div>
 
             <div className="flex flex-col items-center gap-2 mt-1">
-              <div className="text-[10px] text-cyan-400/80 animate-pulse">RUNNING DEEP COMPUTER VISION SEGMENTATION…</div>
+              <div className="text-[10px] text-cyan-400/80 animate-pulse">
+                {reviewPhase === 'road' ? 'QUERYING ROAD NETWORK DATA…' : 'RUNNING DEEP COMPUTER VISION SEGMENTATION…'}
+              </div>
               <div className="h-1 w-full bg-neutral-900 overflow-hidden rounded-full">
                 <div className="h-full bg-cyan-500" style={{ width: "60%" }} />
               </div>
@@ -1894,11 +1990,17 @@ function AIReviewOverlay({
                 <span className="text-sm uppercase font-bold tracking-[0.2em] text-green-400 mt-2">AI VERIFIED SUCCESS</span>
                 <span className="text-[9px] text-neutral-500 uppercase">Garbage detected in photo evidence</span>
               </div>
+            ) : result.phase === 'road' ? (
+              <div className="flex flex-col items-center gap-1">
+                <MapPinIcon className="w-12 h-12 text-orange-400 drop-shadow-[0_0_10px_rgba(251,146,60,0.5)]" />
+                <span className="text-sm uppercase font-bold tracking-[0.2em] text-orange-400 mt-2">LOCATION CHECK FAILED</span>
+                <span className="text-[9px] text-neutral-500 uppercase">Not within 50 m of a public road</span>
+              </div>
             ) : (
               <div className="flex flex-col items-center gap-1">
-                <div className="w-12 h-12 rounded-full border border-yellow-500/50 flex items-center justify-center text-yellow-500 font-bold text-2xl drop-shadow-[0_0_10px_rgba(234,179,8,0.5)]">!</div>
-                <span className="text-sm uppercase font-bold tracking-[0.2em] text-yellow-500 mt-2">PENDING MANUAL REVIEW</span>
-                <span className="text-[9px] text-neutral-500 uppercase">AI analysis clean or inconclusive</span>
+                <div className="w-12 h-12 rounded-full border border-red-500/50 flex items-center justify-center text-red-400 font-bold text-2xl drop-shadow-[0_0_10px_rgba(239,68,68,0.5)]">✕</div>
+                <span className="text-sm uppercase font-bold tracking-[0.2em] text-red-400 mt-2">AI VERIFICATION FAILED</span>
+                <span className="text-[9px] text-neutral-500 uppercase">Could not confirm garbage in photo</span>
               </div>
             )}
 
@@ -1913,14 +2015,35 @@ function AIReviewOverlay({
               </p>
             </div>
 
-            <button
-              onClick={onClose}
-              className={`w-full py-2.5 font-bold uppercase tracking-widest text-[11px] rounded-xl transition-all shadow-[0_0_12px_rgba(0,0,0,0.5)] ${
-                result.verified ? "bg-green-500 hover:bg-green-400 text-black shadow-[0_0_15px_rgba(74,222,128,0.3)]" : "bg-yellow-500 hover:bg-yellow-400 text-black shadow-[0_0_15px_rgba(234,179,8,0.3)]"
-              }`}
-            >
-              Finish & View Map
-            </button>
+            {result.verified ? (
+              <button
+                onClick={onConfirm}
+                className="w-full py-2.5 font-bold uppercase tracking-widest text-[11px] rounded-xl transition-all bg-green-500 hover:bg-green-400 text-black shadow-[0_0_15px_rgba(74,222,128,0.3)]"
+              >
+                Go to Map
+              </button>
+            ) : (
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={onRetake}
+                  className="w-full py-2.5 font-bold uppercase tracking-widest text-[11px] rounded-xl transition-all bg-cyan-500 hover:bg-cyan-400 text-black shadow-[0_0_15px_rgba(0,240,255,0.3)]"
+                >
+                  ↩ Retake Image
+                </button>
+                <button
+                  onClick={onConfirm}
+                  className="w-full py-2.5 font-bold uppercase tracking-widest text-[11px] rounded-xl transition-all bg-yellow-500 hover:bg-yellow-400 text-black shadow-[0_0_15px_rgba(234,179,8,0.3)]"
+                >
+                  Request Review
+                </button>
+                <button
+                  onClick={onCancel}
+                  className="w-full py-2 font-bold uppercase tracking-widest text-[10px] rounded-xl transition-all bg-neutral-800 hover:bg-red-900/60 text-red-400 border border-red-500/30 hover:border-red-500/60"
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
           </>
         ) : null}
       </div>
