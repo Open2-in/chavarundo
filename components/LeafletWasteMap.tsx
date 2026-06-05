@@ -157,6 +157,8 @@ export default function LeafletWasteMap({ initialReports }: { initialReports?: a
   const [leaderboardOpen, setLeaderboardOpen] = useState(false);
   const [authorityOpen, setAuthorityOpen] = useState(false);
   const [authoritySubject, setAuthoritySubject] = useState<any>(null);
+  const [showSignInReportPrompt, setShowSignInReportPrompt] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   useEffect(() => setMounted(true), []);
 
@@ -251,7 +253,7 @@ export default function LeafletWasteMap({ initialReports }: { initialReports?: a
     setCurrentPathEncoded(null);
     setCurrentRouteDistance(null);
     setPointsConfirmed(false);
-    
+
     // Clear new states
     setReportStep(0);
     setReportImage(null);
@@ -611,7 +613,7 @@ export default function LeafletWasteMap({ initialReports }: { initialReports?: a
           setReportStep={setReportStep}
         />
 
-        <MapSearch />
+        <MapSearch isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
       </MapContainer>
 
       {reportStep === 1 && (
@@ -658,6 +660,25 @@ export default function LeafletWasteMap({ initialReports }: { initialReports?: a
       {/* Control buttons — outside MapContainer for reliable rendering */}
       {mounted && (
         <div className="absolute bottom-16 right-4 z-[1000] flex flex-col gap-2">
+          {/* Report — primary action */}
+          <div className="relative">
+            {/* Beacon ring */}
+            <span className="absolute inset-0 rounded animate-ping bg-neutral-400 dark:bg-cyan-500 opacity-40 pointer-events-none" />
+            <button
+              onClick={() => {
+                if (user) {
+                  setReportingMode(true);
+                  setReportStep(1);
+                } else {
+                  setShowSignInReportPrompt(true);
+                }
+              }}
+              className="relative p-2 bg-white/90 dark:bg-black/90 border border-neutral-200 dark:border-cyan-500/30 rounded shadow-md text-blue-600 dark:text-cyan-400 hover:bg-blue-50 dark:hover:bg-cyan-900/30 hover:shadow-[0_0_12px_rgba(0,100,255,0.3)] dark:hover:shadow-[0_0_12px_rgba(0,255,255,0.3)] transition-all"
+              title="Report Waste"
+            >
+              <Plus className="w-5 h-5" />
+            </button>
+          </div>
           {/* Leaderboard */}
           <button
             onClick={() => setLeaderboardOpen(true)}
@@ -688,6 +709,17 @@ export default function LeafletWasteMap({ initialReports }: { initialReports?: a
               )}
             </button>
           )}
+          {/* Search */}
+          <button
+            onClick={() => setSearchOpen((o) => !o)}
+            className={`p-2 bg-white/90 dark:bg-black/90 border rounded shadow-md transition-all ${searchOpen
+                ? "border-blue-400 dark:border-cyan-400 text-blue-600 dark:text-cyan-400 bg-blue-50 dark:bg-cyan-900/30 shadow-[0_0_12px_rgba(0,100,255,0.25)] dark:shadow-[0_0_12px_rgba(0,255,255,0.25)]"
+                : "border-neutral-200 dark:border-cyan-500/30 text-blue-600 dark:text-cyan-400 hover:bg-blue-50 dark:hover:bg-cyan-900/30 hover:shadow-[0_0_12px_rgba(0,100,255,0.2)] dark:hover:shadow-[0_0_12px_rgba(0,255,255,0.2)]"
+              }`}
+            title="Search Location"
+          >
+            <Search className="w-5 h-5" />
+          </button>
           <button
             onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
             className="p-2 bg-white/90 dark:bg-black/90 border border-neutral-200 dark:border-cyan-500/30 rounded shadow-md text-blue-700 dark:text-cyan-400 hover:bg-neutral-100 dark:hover:bg-blue-100/40 dark:bg-cyan-900/40 transition-all"
@@ -696,6 +728,18 @@ export default function LeafletWasteMap({ initialReports }: { initialReports?: a
             {resolvedTheme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
           </button>
         </div>
+      )}
+
+      {/* Sign-in prompt for reporting — shown from the + Report FAB */}
+      {showSignInReportPrompt && (
+        <SignInToReportModal
+          onClose={() => setShowSignInReportPrompt(false)}
+          onAnonymous={() => {
+            setShowSignInReportPrompt(false);
+            setReportingMode(true);
+            setReportStep(1);
+          }}
+        />
       )}
 
       <ReportsMarquee reports={reports} onSelect={setPendingDeepLinkId} />
@@ -1738,9 +1782,8 @@ function PhotoCaptureModal({
           <button
             onClick={handleUseCameraClick}
             disabled={isLocating}
-            className={`w-full py-5 border border-dashed border-cyan-500/50 hover:border-cyan-400 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 font-bold uppercase tracking-widest text-[11px] transition-all rounded-xl flex flex-col items-center gap-2 ${
-              isLocating ? "opacity-60 cursor-not-allowed animate-pulse" : ""
-            }`}
+            className={`w-full py-5 border border-dashed border-cyan-500/50 hover:border-cyan-400 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 font-bold uppercase tracking-widest text-[11px] transition-all rounded-xl flex flex-col items-center gap-2 ${isLocating ? "opacity-60 cursor-not-allowed animate-pulse" : ""
+              }`}
           >
             <Camera className={`w-6 h-6 ${isLocating ? "animate-spin text-cyan-400" : "animate-pulse"}`} />
             <span>{isLocating ? "Locating GPS..." : "Open Camera"}</span>
@@ -1871,7 +1914,7 @@ function SubmitReportForm({
                     : s === "medium" ? "bg-[#ff9900] text-black border-[#ff9900] shadow-[0_0_10px_rgba(255,153,0,0.4)]"
                       : "bg-[#ff003c] text-white border-[#ff003c] shadow-[0_0_10px_rgba(255,0,60,0.4)]"
                   : "bg-transparent text-neutral-400 border-neutral-300 dark:border-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-900"
-                }`}
+                  }`}
               >
                 {s}
               </button>
@@ -1949,7 +1992,7 @@ function AIReviewOverlay({
       `}</style>
       <div className="fixed inset-0 z-[2700] bg-black/70 backdrop-blur-md" />
       <div className="fixed z-[2701] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(380px,92vw)] bg-neutral-950 border border-cyan-500/40 rounded-2xl font-mono shadow-[0_0_40px_rgba(0,255,255,0.25)] p-6 flex flex-col gap-5 text-center">
-        
+
         {isReviewing ? (
           <>
             <div className="flex flex-col items-center">
@@ -2756,7 +2799,6 @@ function ReportingOverlay({
   const user = useAuthStore((state) => state.user);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isDesktopHovered, setIsDesktopHovered] = useState(false);
-  const [showSignInReportPrompt, setShowSignInReportPrompt] = useState(false);
   const [showGeoPhotoModal, setShowGeoPhotoModal] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
 
@@ -2801,50 +2843,13 @@ function ReportingOverlay({
             <div className="flex justify-between items-center">
               <div className="flex flex-col">
                 <h1 className="text-lg md:text-xl font-bold tracking-[0.2em] text-blue-600 dark:text-cyan-400 flex items-center gap-2 md:gap-3 uppercase">
-                  <span className="text-blue-600 dark:text-cyan-400 drop-shadow-[0_0_8px_rgba(0,255,255,0.8)] flex items-center justify-center">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="w-5 h-5 md:w-6 md:h-6"
-                    >
-                      <defs>
-                        {/* 3D gloss + shadow — sits over currentColor, adapts to both themes */}
-                        <linearGradient id="kzPin3d" x1="7" y1="2" x2="17" y2="23" gradientUnits="userSpaceOnUse">
-                          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.6" />
-                          <stop offset="40%" stopColor="#ffffff" stopOpacity="0" />
-                          <stop offset="60%" stopColor="#000000" stopOpacity="0" />
-                          <stop offset="100%" stopColor="#000000" stopOpacity="0.45" />
-                        </linearGradient>
-                        {/* crater inner shadow for depth */}
-                        <linearGradient id="kzCrater" x1="12" y1="6.9" x2="12" y2="11.8" gradientUnits="userSpaceOnUse">
-                          <stop offset="0%" stopColor="#000000" stopOpacity="0.45" />
-                          <stop offset="100%" stopColor="#000000" stopOpacity="0" />
-                        </linearGradient>
-                      </defs>
-                      {/* map pin — curvy teardrop */}
-                      <path
-                        d="M12 2C7.7 2 4.2 5.5 4.2 9.8c0 3 2 6 4 8.2.9 1 1.8 1.8 2.5 2.4.7.6 1.9.6 2.6 0 .7-.6 1.6-1.4 2.5-2.4 2-2.2 4-5.2 4-8.2C19.8 5.5 16.3 2 12 2Z"
-                        fill="currentColor"
-                        stroke="none"
-                      />
-                      {/* 3D shading overlay */}
-                      <path
-                        d="M12 2C7.7 2 4.2 5.5 4.2 9.8c0 3 2 6 4 8.2.9 1 1.8 1.8 2.5 2.4.7.6 1.9.6 2.6 0 .7-.6 1.6-1.4 2.5-2.4 2-2.2 4-5.2 4-8.2C19.8 5.5 16.3 2 12 2Z"
-                        fill="url(#kzPin3d)"
-                        stroke="none"
-                      />
-                      {/* trash bin cutout (adapts to theme surface) */}
-                      <path
-                        d="M9 7.5h6v1H9v-1z M10 9h4v4a1 1 0 01-1 1h-2a1 1 0 01-1-1V9z"
-                        className="fill-white dark:fill-[#0a0e17]"
-                        stroke="none"
-                      />
-                    </svg>
+                  <span className="flex items-center justify-center">
+                    <img
+                      src="/logo.svg"
+                      alt="Chavarundo logo"
+                      className="w-7 h-7 md:w-8 md:h-8"
+                      draggable={false}
+                    />
                   </span>
                   <span lang="ml" className="font-malayalam text-lg md:text-xl tracking-normal normal-case font-normal">
                     ചവറുണ്ടോ?
@@ -2890,19 +2895,6 @@ function ReportingOverlay({
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <button
-                  onClick={() => {
-                    if (user) {
-                      setReportingMode(true);
-                      setReportStep(1);
-                    } else {
-                      setShowSignInReportPrompt(true);
-                    }
-                  }}
-                  className="bg-blue-600 dark:bg-cyan-500 hover:bg-blue-700 dark:hover:bg-cyan-400 text-white dark:text-black font-bold px-3 py-1.5 text-[10px] uppercase tracking-widest flex items-center gap-1 border border-blue-700 dark:border-cyan-400 dark:shadow-[0_0_10px_rgba(0,255,255,0.4)] transition-all"
-                >
-                  <Plus className="w-3 h-3" /> Report
-                </button>
                 <button
                   onClick={() => setIsExpanded(!isExpanded)}
                   className="md:hidden flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-blue-500 dark:text-cyan-300 px-2 py-1.5 border border-blue-400/50 dark:border-cyan-400/50 bg-blue-100/50 dark:bg-cyan-900/50 hover:bg-blue-50/60 dark:bg-cyan-800/60 shadow-[0_0_8px_rgba(0,255,255,0.2)] transition-all"
@@ -2975,16 +2967,7 @@ function ReportingOverlay({
             </div>
           </div>
         </div>
-        {showSignInReportPrompt && (
-          <SignInToReportModal
-            onClose={() => setShowSignInReportPrompt(false)}
-            onAnonymous={() => {
-              setShowSignInReportPrompt(false);
-              setReportingMode(true);
-              setReportStep(1);
-            }}
-          />
-        )}
+
       </>
     );
   }
@@ -3335,12 +3318,49 @@ function SubmitRouteForm({
   );
 }
 
-function MapSearch() {
+function MapSearch({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const map = useMap();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showResults, setShowResults] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Focus input when panel opens
+  useEffect(() => {
+    if (isOpen) {
+      setTimeout(() => inputRef.current?.focus(), 50);
+    } else {
+      setQuery("");
+      setResults([]);
+      setShowResults(false);
+    }
+  }, [isOpen]);
+
+  // Close on outside click
+  useEffect(() => {
+    if (!isOpen) return;
+    function handleOutside(e: MouseEvent | TouchEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    }
+    document.addEventListener("mousedown", handleOutside);
+    document.addEventListener("touchstart", handleOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleOutside);
+      document.removeEventListener("touchstart", handleOutside);
+    };
+  }, [isOpen, onClose]);
+
+  // Block map clicks propagating through the panel
+  useEffect(() => {
+    if (containerRef.current) {
+      L.DomEvent.disableClickPropagation(containerRef.current);
+      L.DomEvent.disableScrollPropagation(containerRef.current);
+    }
+  }, []);
 
   const normalizeSearchResults = (data: any) => {
     const items = Array.isArray(data)
@@ -3397,45 +3417,78 @@ function MapSearch() {
     const lat = Number(result.lat);
     const lon = Number(result.lon);
     if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
-
     map.flyTo([lat, lon], 15);
-    setShowResults(false);
     setQuery("");
+    setResults([]);
+    setShowResults(false);
+    onClose();
   };
 
-  return (
-    <div className="absolute z-[1000] bottom-[calc(3.8rem_+_var(--sab))] left-4 right-17 md:bottom-auto md:top-[max(1rem,var(--sat))] md:left-auto md:right-4 md:w-64 flex flex-col pointer-events-none">
-      <div className="relative pointer-events-auto shadow-[0_0_15px_rgba(0,0,0,0.5)]">
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => searchPlaces(e.target.value)}
-          onFocus={() => setShowResults(true)}
-          placeholder="SEARCH LOCATION..."
-          style={{ fontSize: 16 }}
-          className="w-full bg-white/90 dark:bg-black/90 border border-blue-500/50 dark:border-cyan-500/50 text-blue-600 dark:text-cyan-400 pl-8 pr-3 py-2 uppercase tracking-widest outline-none focus:border-blue-400 dark:border-cyan-400 focus:shadow-[0_0_10px_rgba(0,255,255,0.3)] placeholder:text-blue-700/30 dark:placeholder:text-cyan-500/40 font-mono backdrop-blur-md"
-        />
-        <Search className="w-4 h-4 text-blue-700/50 dark:text-cyan-500/50 absolute left-2.5 top-1/2 -translate-y-1/2" />
+  if (!isOpen) return null;
 
+  return (
+    <>
+      {/* Backdrop — click to close */}
+      <div
+        className="absolute inset-0 z-[1001] bg-white/30 dark:bg-black/40 backdrop-blur-[2px]"
+        onClick={onClose}
+      />
+
+      {/* Centered search card */}
+      <div
+        ref={containerRef}
+        className="absolute z-[1002] left-1/2 -translate-x-1/2 w-[min(420px,90vw)] font-mono"
+        style={{ top: "max(5rem, calc(4rem + var(--sat)))" }}
+      >
+        {/* Input row */}
+        <div className="flex items-center bg-white/80 dark:bg-black/80 backdrop-blur-xl border border-blue-400/60 dark:border-cyan-500/60 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.18)] dark:shadow-[0_8px_32px_rgba(0,255,255,0.08)] px-1 pr-1">
+          <Search className="w-4 h-4 text-blue-500/70 dark:text-cyan-500/60 ml-3 shrink-0" />
+          <input
+            ref={inputRef}
+            type="text"
+            value={query}
+            onChange={(e) => searchPlaces(e.target.value)}
+            placeholder="Search location..."
+            style={{ fontSize: 15 }}
+            className="flex-1 bg-transparent text-blue-700 dark:text-cyan-300 px-3 py-3 outline-none placeholder:text-blue-400/50 dark:placeholder:text-cyan-500/40 font-mono min-w-0"
+          />
+          {isSearching && (
+            <span className="w-3.5 h-3.5 border-2 border-blue-400 dark:border-cyan-400 border-t-transparent rounded-full animate-spin mr-2 shrink-0" />
+          )}
+          <button
+            onClick={onClose}
+            className="p-2 rounded-xl text-blue-400/70 dark:text-cyan-500/50 hover:text-blue-700 dark:hover:text-cyan-300 hover:bg-blue-50 dark:hover:bg-cyan-900/30 transition-all shrink-0"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Results */}
         {showResults && results.length > 0 && (
-          <div className="absolute bottom-full mb-1 md:bottom-auto md:top-full md:mt-1 md:mb-0 w-full bg-white/95 dark:bg-black/95 border border-blue-500/30 dark:border-cyan-500/30 max-h-[min(15rem,50vh)] overflow-y-auto backdrop-blur-md">
+          <div className="mt-1.5 bg-white/80 dark:bg-black/80 backdrop-blur-xl border border-blue-300/50 dark:border-cyan-500/30 rounded-2xl shadow-[0_8px_24px_rgba(0,0,0,0.12)] overflow-hidden max-h-[min(15rem,45vh)] overflow-y-auto">
             {results.map((r, i) => (
               <button
                 key={i}
                 onClick={() => goToPlace(r)}
-                className="w-full text-left px-3 py-2 hover:bg-blue-100/40 dark:bg-cyan-900/40 text-blue-600 dark:text-cyan-400 text-xs flex flex-col border-b border-blue-500/10 dark:border-cyan-500/10 last:border-0"
+                className="w-full text-left px-4 py-2.5 hover:bg-blue-50/80 dark:hover:bg-cyan-900/40 text-blue-700 dark:text-cyan-300 flex flex-col border-b border-blue-100/60 dark:border-cyan-500/10 last:border-0 transition-colors"
               >
-                <span className="font-bold truncate w-full block">
+                <span className="font-bold text-xs truncate w-full block">
                   {r.name || r.display_name?.split(",")[0] || "Unknown"}
                 </span>
-                <span className="text-[9px] text-blue-700/60 dark:text-cyan-500/60 truncate w-full block">
+                <span className="text-[10px] text-blue-500/70 dark:text-cyan-500/60 truncate w-full block mt-0.5">
                   {r.subtitle || r.display_name || ""}
                 </span>
               </button>
             ))}
           </div>
         )}
+
+        {showResults && query.trim() && !isSearching && results.length === 0 && (
+          <div className="mt-1.5 bg-white/80 dark:bg-black/80 backdrop-blur-xl border border-blue-300/50 dark:border-cyan-500/30 rounded-2xl px-4 py-3 text-[11px] text-blue-500/70 dark:text-cyan-500/50 uppercase tracking-widest text-center">
+            No results found
+          </div>
+        )}
       </div>
-    </div>
+    </>
   );
 }
