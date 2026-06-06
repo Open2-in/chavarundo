@@ -367,30 +367,6 @@ export default function LeafletWasteMap({ initialReports }: { initialReports?: a
       setIsAIReviewing(true);
       setReportStep(0); // Hide detail form
 
-      // ── Step 1: Road proximity check (must be within 50 m of a public road) ──
-      setReviewPhase('road');
-      try {
-        const nearestRes = await fetch(
-          `https://router.project-osrm.org/nearest/v1/driving/${pt[1]},${pt[0]}?number=1`
-        );
-        if (nearestRes.ok) {
-          const nearestData = await nearestRes.json();
-          const distToRoad: number = nearestData.waypoints?.[0]?.distance ?? 0;
-          if (distToRoad > 50) {
-            setAiReviewResult({
-              success: false,
-              verified: false,
-              reasoning: `The marked location is ${Math.round(distToRoad)} m from the nearest public road. Reports must be placed within 50 m of a road.`,
-              phase: 'road',
-            });
-            return; // Skip AI check — finally will clear isAIReviewing
-          }
-        }
-      } catch {
-        // Road check network error — log and proceed to AI check anyway
-        console.warn("Road proximity check failed (network), proceeding with AI check.");
-      }
-
       // ── Step 2: AI garbage verification ──
       setReviewPhase('ai');
       const checkRes = await fetchWithAppCheck("/api/garbage/check", {
@@ -418,7 +394,7 @@ export default function LeafletWasteMap({ initialReports }: { initialReports?: a
         success: false,
         verified: false,
         reasoning: e.message || "An unexpected error occurred during submission.",
-        phase: reviewPhase,
+        phase: 'ai',
       });
     } finally {
       setIsAIReviewing(false);
