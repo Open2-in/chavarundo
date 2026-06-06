@@ -1,31 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getReport, updateReportStatus } from "@/lib/firebase-server";
 import { getAIServiceToken } from "@/lib/open2-auth";
-import { verifyAppCheckToken } from "@/lib/appcheck-verify";
 
 export const runtime = "edge";
 
 export async function POST(req: NextRequest) {
-  // 1. Verify App Check token for security
-  const appCheckToken = req.headers.get("X-Firebase-AppCheck");
-  if (!appCheckToken || !(await verifyAppCheckToken(appCheckToken))) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   try {
-    const { reportId } = await req.json();
-    if (!reportId) {
-      return NextResponse.json({ error: "Missing reportId" }, { status: 400 });
+    const { reportId, imageUrl } = await req.json().catch(() => ({}));
+    if (!reportId && !imageUrl) {
+      return NextResponse.json({ error: "Missing reportId or imageUrl" }, { status: 400 });
     }
 
-    // 2. Fetch the report from Firestore
-    const report = await getReport(reportId);
-    if (!report) {
-      return NextResponse.json({ error: "Report not found" }, { status: 404 });
+    let imageToVerify = imageUrl;
+
+    if (reportId) {
+      // 2. Fetch the report from Firestore
+      const report = await getReport(reportId);
+      if (!report) {
+        return NextResponse.json({ error: "Report not found" }, { status: 404 });
+      }
+      imageToVerify = report.imageUrl;
     }
 
-    if (!report.imageUrl) {
-      await updateReportStatus(reportId, "pending");
+    if (!imageToVerify) {
+      if (reportId) {
+        await updateReportStatus(reportId, "pending");
+      }
       return NextResponse.json({
         success: true,
         verified: false,
@@ -34,10 +34,12 @@ export async function POST(req: NextRequest) {
     }
 
     // 3. Decode base64 image data to binary
-    const matches = report.imageUrl.match(/^data:(image\/[a-z]+);base64,(.+)$/);
+    const matches = imageToVerify.match(/^data:(image\/[a-z]+);base64,(.+)$/);
     if (!matches) {
-      await updateReportStatus(reportId, "pending");
-      return NextResponse.json({ error: "Invalid image format in database" }, { status: 400 });
+      if (reportId) {
+        await updateReportStatus(reportId, "pending");
+      }
+      return NextResponse.json({ error: "Invalid image format in request/database" }, { status: 400 });
     }
 
     const mimeType = matches[1];
@@ -53,8 +55,10 @@ export async function POST(req: NextRequest) {
 
     // 4. Check if Mock AI Service is enabled
     if (process.env.MOCK_AI_SERVICE === "true") {
-      console.log(`[Mock AI] Bypassing real AI check for report ${reportId}`);
-      await updateReportStatus(reportId, "verified");
+      console.log(`[Mock AI] Bypassing real AI check`);
+      if (reportId) {
+        await updateReportStatus(reportId, "verified");
+      }
       return NextResponse.json({
         success: true,
         verified: true,
@@ -68,7 +72,9 @@ export async function POST(req: NextRequest) {
       aiToken = await getAIServiceToken();
     } catch (e: any) {
       console.error("AI service authentication failed:", e);
-      await updateReportStatus(reportId, "pending");
+      if (reportId) {
+        await updateReportStatus(reportId, "pending");
+      }
       return NextResponse.json({
         success: true,
         verified: false,
@@ -111,7 +117,9 @@ export async function POST(req: NextRequest) {
       }
     } catch (e: any) {
       console.error("AI service connection failed:", e);
-      await updateReportStatus(reportId, "pending");
+      if (reportId) {
+        await updateReportStatus(reportId, "pending");
+      }
       return NextResponse.json({
         success: true,
         verified: false,
@@ -122,7 +130,9 @@ export async function POST(req: NextRequest) {
     if (!aiRes.ok) {
       const errDetail = await aiRes.text().catch(() => "");
       console.error(`AI service call failed: ${aiRes.status} ${errDetail}`);
-      await updateReportStatus(reportId, "pending");
+      if (reportId) {
+        await updateReportStatus(reportId, "pending");
+      }
       return NextResponse.json({
         success: true,
         verified: false,
@@ -135,8 +145,10 @@ export async function POST(req: NextRequest) {
     const analysisReasoning = aiData.data?.analysisReasoning || "No explanation provided.";
 
     // 8. Update status in database based on verification result
-    const nextStatus = containsGarbage ? "verified" : "pending";
-    await updateReportStatus(reportId, nextStatus);
+    if (reportId) {
+      const nextStatus = containsGarbage ? "verified" : "pending";
+      await updateReportStatus(reportId, nextStatus);
+    }
 
     return NextResponse.json({
       success: true,

@@ -21,7 +21,7 @@ function getIndex() {
 
 export async function GET(req: NextRequest) {
   const token = req.headers.get("X-Firebase-AppCheck");
-  if (!token || !(await verifyAppCheckToken(token))) {
+  if (!(await verifyAppCheckToken(token))) {
     return NextResponse.json(null, { status: 401 });
   }
 

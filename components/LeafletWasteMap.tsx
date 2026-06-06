@@ -254,6 +254,7 @@ export default function LeafletWasteMap({ initialReports }: { initialReports?: a
   const [submittedReportId, setSubmittedReportId] = useState<string | null>(null);
   const [aiReviewResult, setAiReviewResult] = useState<{ success: boolean; verified: boolean; reasoning: string; phase?: 'road' | 'ai' } | null>(null);
   const [exifError, setExifError] = useState<string | null>(null);
+  const [pendingReportPayload, setPendingReportPayload] = useState<any | null>(null);
 
   const cancelReporting = () => {
     setReportingMode(false);
@@ -272,6 +273,7 @@ export default function LeafletWasteMap({ initialReports }: { initialReports?: a
     setIsAIReviewing(false);
     setAiReviewResult(null);
     setSubmittedReportId(null);
+    setPendingReportPayload(null);
   };
 
   const handleReportPhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -349,7 +351,6 @@ export default function LeafletWasteMap({ initialReports }: { initialReports?: a
         latitude: pt[0],
         longitude: pt[1],
         createdAt: serverTimestamp(),
-        status: "pending",
         severity: data.severity,
         imageUrl: reportImage,
         upvoterIds: [],
@@ -360,9 +361,7 @@ export default function LeafletWasteMap({ initialReports }: { initialReports?: a
 
       saveReporterName(data.name);
 
-      const docRef = await addDoc(collection(db, "waste_reports"), payload);
-      const reportId = docRef.id;
-      setSubmittedReportId(reportId);
+      setPendingReportPayload(payload);
 
       setIsAIReviewing(true);
       setReportStep(0); // Hide detail form
@@ -374,7 +373,7 @@ export default function LeafletWasteMap({ initialReports }: { initialReports?: a
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ reportId }),
+        body: JSON.stringify({ imageUrl: reportImage }),
       });
 
       if (!checkRes.ok) {
@@ -401,45 +400,43 @@ export default function LeafletWasteMap({ initialReports }: { initialReports?: a
     }
   };
 
-  // Retake: delete the failed record, go back to photo capture (step 1)
+  // Retake: go back to photo capture (step 1) without deleting anything from Firestore
   const handleRetakeImage = async () => {
-    if (submittedReportId) {
-      try {
-        await deleteDoc(doc(db, "waste_reports", submittedReportId));
-      } catch (e) {
-        console.error("Failed to delete report during retake:", e);
-      }
-    }
     setAiReviewResult(null);
     setIsAIReviewing(false);
     setReportImage(null);
     setOriginalExifCoords(null);
     setAdjustedCoords(null);
     setSubmittedReportId(null);
+    setPendingReportPayload(null);
     setReportStep(1); // Back to photo capture
   };
 
-  // Cancel: delete the failed record, exit entirely
+  // Cancel: exit entirely without deleting anything from Firestore
   const handleDeleteAndCancel = async () => {
-    if (submittedReportId) {
-      try {
-        await deleteDoc(doc(db, "waste_reports", submittedReportId));
-      } catch (e) {
-        console.error("Failed to delete report on cancel:", e);
-      }
-    }
     cancelReporting();
   };
 
-  // Confirm (Send for Review / Request Review): enrich the record in background then close
+  // Confirm (Send for Review / Request Review): create report in Firestore and enrich in background
   const handleConfirmReport = async () => {
-    const reportId = submittedReportId;
+    const payload = pendingReportPayload;
     const coords = adjustedCoords;
+    const isVerified = aiReviewResult?.verified;
     cancelReporting(); // Reset UI immediately — enrichment runs in background
 
-    if (!reportId || !coords) return;
+    if (!payload || !coords) return;
 
     try {
+      const status = isVerified ? "verified" : "pending";
+      const payloadToWrite = {
+        ...payload,
+        status,
+      };
+
+      const docRef = await addDoc(collection(db, "waste_reports"), payloadToWrite);
+      const reportId = docRef.id;
+      setSubmittedReportId(reportId);
+
       const pt: [number, number] = [coords.lat, coords.lng];
       const [adrData, constituency, roadInfo] = await Promise.all([
         fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${pt[0]}&lon=${pt[1]}&zoom=18&addressdetails=1`)

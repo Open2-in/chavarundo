@@ -58,7 +58,7 @@ async function getWard(lat: number, lng: number): Promise<{
 
 export async function GET(req: NextRequest) {
   const appCheckToken = req.headers.get("X-Firebase-AppCheck");
-  if (!appCheckToken || !(await verifyAppCheckToken(appCheckToken))) {
+  if (!(await verifyAppCheckToken(appCheckToken))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

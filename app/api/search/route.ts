@@ -5,7 +5,7 @@ export const runtime = "edge";
 
 export async function GET(req: NextRequest) {
   const appCheckToken = req.headers.get("X-Firebase-AppCheck");
-  if (!appCheckToken || !(await verifyAppCheckToken(appCheckToken))) {
+  if (!(await verifyAppCheckToken(appCheckToken))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

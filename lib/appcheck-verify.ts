@@ -26,10 +26,22 @@ async function getPublicKeys(): Promise<Record<string, CryptoKey>> {
 }
 
 function b64url(s: string) {
-  return atob(s.replace(/-/g, "+").replace(/_/g, "/"));
+  let base64 = s.replace(/-/g, "+").replace(/_/g, "/");
+  const pad = base64.length % 4;
+  if (pad === 2) {
+    base64 += "==";
+  } else if (pad === 3) {
+    base64 += "=";
+  }
+  return atob(base64);
 }
 
-export async function verifyAppCheckToken(token: string): Promise<boolean> {
+export async function verifyAppCheckToken(token: string | null): Promise<boolean> {
+  if (process.env.DISABLE_APP_CHECK === "true") {
+    return true;
+  }
+  if (!token) return false;
+
   try {
     const parts = token.split(".");
     if (parts.length !== 3) return false;
@@ -39,22 +51,42 @@ export async function verifyAppCheckToken(token: string): Promise<boolean> {
     const payload = JSON.parse(b64url(payloadB64));
 
     const now = Date.now() / 1000;
-    if (payload.exp < now) return false;
-    if (payload.nbf !== undefined && payload.nbf > now) return false;
+    if (payload.exp < now) {
+      console.warn("[App Check] Token has expired.");
+      return false;
+    }
+    if (payload.nbf !== undefined && payload.nbf > now) {
+      console.warn("[App Check] Token not active yet.");
+      return false;
+    }
 
     const projectNumber = process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID;
-    if (!payload.aud?.includes(`projects/${projectNumber}`)) return false;
-    if (payload.iss !== `https://firebaseappcheck.googleapis.com/${projectNumber}`) return false;
+    if (!payload.aud?.includes(`projects/${projectNumber}`)) {
+      console.warn(`[App Check] Audience mismatch. Expected projects/${projectNumber}, got:`, payload.aud);
+      return false;
+    }
+    if (payload.iss !== `https://firebaseappcheck.googleapis.com/${projectNumber}`) {
+      console.warn(`[App Check] Issuer mismatch. Expected https://firebaseappcheck.googleapis.com/${projectNumber}, got:`, payload.iss);
+      return false;
+    }
 
     const keys = await getPublicKeys();
     const key = keys[header.kid];
-    if (!key) return false;
+    if (!key) {
+      console.warn("[App Check] Key ID (kid) not found in JWKS:", header.kid);
+      return false;
+    }
 
     const data = new TextEncoder().encode(`${headerB64}.${payloadB64}`);
     const sig = Uint8Array.from(b64url(sigB64), (c) => c.charCodeAt(0));
 
-    return await crypto.subtle.verify("RSASSA-PKCS1-v1_5", key, sig, data);
-  } catch {
+    const isValid = await crypto.subtle.verify("RSASSA-PKCS1-v1_5", key, sig, data);
+    if (!isValid) {
+      console.warn("[App Check] Signature verification failed.");
+    }
+    return isValid;
+  } catch (err: any) {
+    console.error("[App Check Verify Error]:", err);
     return false;
   }
 }
