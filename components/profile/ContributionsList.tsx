@@ -9,8 +9,7 @@ import {
   ExternalLink,
   AlertTriangle,
 } from "lucide-react";
-import { deleteDoc, doc } from "firebase/firestore";
-import { db } from "../../lib/firebase";
+import { useWasteReports } from "@/store/firebase";
 import type { UserStats } from "./types";
 import { getColor, formatShortDate } from "./types";
 
@@ -32,11 +31,12 @@ export default function ContributionsList({
 }: ContributionsListProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deletingInProgress, setDeletingInProgress] = useState(false);
+  const { deleteRecord } = useWasteReports();
 
   const handleDelete = async (id: string) => {
     setDeletingInProgress(true);
     try {
-      await deleteDoc(doc(db, "waste_reports", id));
+      await deleteRecord(id);
       setDeletingId(null);
     } catch (err) {
       console.error("Failed to delete report:", err);
