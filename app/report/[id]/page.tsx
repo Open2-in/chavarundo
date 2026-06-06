@@ -271,8 +271,15 @@ export default async function ReportPage({
 
           {/* Address / title */}
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold leading-tight text-white">
-              {r.address || "Road Waste Report"}
+            <h1 className="text-2xl sm:text-3xl font-bold leading-tight text-white flex items-center flex-wrap">
+              <span>{r.address || "Road Waste Report"}</span>
+              {r.status === "verified" && (
+                <span className="inline-flex items-center ml-2 align-middle text-cyan-400 shrink-0" title="AI Verified Report">
+                  <svg className="w-6 h-6 text-cyan-400 drop-shadow-[0_0_6px_rgba(6,182,212,0.6)]" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+                  </svg>
+                </span>
+              )}
             </h1>
             {r.district && (
               <p className="text-white/40 mt-1 text-sm font-mono">{r.district}, Kerala</p>

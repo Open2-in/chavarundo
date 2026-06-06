@@ -8,7 +8,7 @@ export const runtime = "edge";
 const AC_URL =
   "https://raw.githubusercontent.com/opendatakerala/kerala-assembly-map/main/KLA_2026_Review/KLA_AC_2026_V2.geojson";
 const WARDS_FGB_URL =
-  "https://github.com/open2-in/kuzhiyundo/releases/download/v1.2-wards/KL_Wards_indexed.fgb";
+  "https://github.com/sajithlaldev/kuzhiyundo/releases/download/v1.2-wards/KL_Wards_indexed.fgb";
 
 let _acFeatures: any[] | null = null;
 

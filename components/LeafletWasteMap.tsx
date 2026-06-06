@@ -2478,7 +2478,16 @@ function ReportDetailSheet({ report, ac: initialAc, user, onVote, onClose, onSel
           <div className="flex items-start justify-between px-4 pt-2 pb-3 border-b border-blue-500/20 dark:border-cyan-500/20">
             <div>
               <div className="text-[9px] uppercase tracking-widest text-blue-700/60 dark:text-cyan-500/60 mb-1">Waste Report</div>
-              <div className="text-sm font-bold text-blue-600 dark:text-cyan-400 line-clamp-2">{report.address || "Unknown Location"}</div>
+              <div className="text-sm font-bold text-blue-600 dark:text-cyan-400 flex items-center flex-wrap gap-1">
+                <span>{report.address || "Unknown Location"}</span>
+                {report.status === "verified" && (
+                  <span className="inline-flex items-center text-cyan-400 shrink-0" title="AI Verified Report">
+                    <svg className="w-4 h-4 text-cyan-400 drop-shadow-[0_0_6px_rgba(6,182,212,0.6)]" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+                    </svg>
+                  </span>
+                )}
+              </div>
               {ac && (
                 <div className="flex flex-col gap-0.5 mt-0.5">
                   {ac.lsgdLabel && (
