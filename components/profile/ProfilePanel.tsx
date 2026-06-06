@@ -4,26 +4,27 @@ import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence } from "motion/react";
 import { User, FileText, LogOut, Flag, ChevronRight } from "lucide-react";
 
-import type { ProfilePanelProps, PanelView } from "./types";
-import { computeUserStats } from "./types";
+import type { PanelView } from "@/types";
+import { computeUserStats } from "@/components/utils";
 import UserCard from "./UserCard";
 import StatsGrid from "./StatsGrid";
 import SeverityBreakdown from "./SeverityBreakdown";
 import ActivityDetails from "./ActivityDetails";
 import ContributionsList from "./ContributionsList";
 
-import Sheet from "@/components/base/Sheet";
-import Button from "@/components/base/Button";
+import { Sheet, Button } from "@/components/base";
+import { useUser } from "@/store/userStore";
+import { useUI } from "@/store/uiStore";
+import { useMapSelection } from "@/store/mapStore";
+import { useWasteReports } from "@/store/firebase";
 
-export default function ProfilePanel({
-  isOpen,
-  onClose,
-  user,
-  reports = [],
-  onLogout,
-  onNavigateToReport,
-  subject,
-}: ProfilePanelProps) {
+export default function ProfilePanel() {
+  const { activePanel, setActivePanel } = useUI();
+  const isOpen = activePanel === "profile";
+  const { user, logout } = useUser();
+  const { profileSubject: subject, setPendingDeepLinkId } = useMapSelection();
+  const reports = useWasteReports((s) => s.reports);
+
   const [view, setView] = useState<PanelView>("profile");
 
   // Whose profile is shown: an explicit subject, else the logged-in user.
@@ -51,7 +52,12 @@ export default function ProfilePanel({
 
   // Reset view when panel closes
   const handleClose = () => {
-    onClose();
+    setActivePanel(null);
+  };
+
+  const onNavigateToReport = (id: string) => {
+    setActivePanel(null);
+    setPendingDeepLinkId(id);
   };
 
   useEffect(() => {
@@ -88,7 +94,7 @@ export default function ProfilePanel({
     <div className="px-4 py-3">
       <Button
         onClick={() => {
-          onLogout();
+          logout();
           handleClose();
         }}
         variant="ghost"

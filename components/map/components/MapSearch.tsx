@@ -4,8 +4,7 @@ import L from "leaflet";
 import { Search, X } from "lucide-react";
 import { fetchWithAppCheck } from "@/lib/appcheck-fetch";
 
-import Card from "@/components/base/Card";
-import Button from "@/components/base/Button";
+import { Card, Button } from "@/components/base";
 
 interface MapSearchProps {
   isOpen: boolean;

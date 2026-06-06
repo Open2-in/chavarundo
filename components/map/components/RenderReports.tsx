@@ -7,36 +7,28 @@ import { AnimatePresence } from "motion/react";
 import { ThumbsUp, ThumbsDown, X, Camera, Trash2 } from "lucide-react";
 import { deleteField } from "firebase/firestore";
 
-import { useAuthStore } from "@/lib/store";
-import { loginAnonymously } from "@/lib/firebase";
+import { useUser } from "@/store/userStore";
 import { getConstituency } from "@/lib/constituency";
 import { useWasteReports } from "@/store/firebase";
-import { getColor, createDotIcon, getRoadAuthority, clampReporterName, saveReporterName } from "../utils";
+import { getSeverityColor, createDotIcon, getRoadAuthority, clampReporterName, saveReporterName } from "@/components/utils";
 import ReportDetailSheet from "./ReportDetailSheet";
+import { useMapSelection } from "@/store/mapStore";
 
-import Button from "@/components/base/Button";
-import Input from "@/components/base/Input";
-import Textarea from "@/components/base/Textarea";
+import { Button, Input, Textarea } from "@/components/base";
 
-interface RenderReportsProps {
-  reports: any[];
-  detailReportId: string | null;
-  setDetailReportId: (id: string | null) => void;
-  pendingDeepLinkId: string | null;
-  setPendingDeepLinkId: (id: string | null) => void;
-  onSelectAuthority?: (auth: any) => void;
-}
+export default function RenderReports() {
+  const reports = useWasteReports((s) => s.reports);
+  const {
+    detailReportId,
+    setDetailReportId,
+    pendingDeepLinkId,
+    setPendingDeepLinkId,
+  } = useMapSelection();
 
-export default function RenderReports({
-  reports,
-  detailReportId,
-  setDetailReportId,
-  pendingDeepLinkId,
-  setPendingDeepLinkId,
-  onSelectAuthority,
-}: RenderReportsProps) {
-  const user = useAuthStore((state) => state.user);
-  const { deleteRecord, editRecord, voteRecord } = useWasteReports();
+  const { user, loginAnonymously } = useUser();
+  const deleteRecord = useWasteReports((s) => s.deleteRecord);
+  const editRecord = useWasteReports((s) => s.editRecord);
+  const voteRecord = useWasteReports((s) => s.voteRecord);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editNotes, setEditNotes] = useState("");
@@ -187,8 +179,6 @@ export default function RenderReports({
   const handleVote = async (
     reportId: string,
     type: "up" | "down",
-    currentUpvoters: string[],
-    currentDownvoters: string[],
   ) => {
     let voter = user;
     if (!voter) {
@@ -198,7 +188,7 @@ export default function RenderReports({
       if (!voter) return;
     }
     try {
-      await voteRecord(reportId, type, voter.uid, currentUpvoters, currentDownvoters);
+      await voteRecord(reportId, type, voter.uid);
     } catch (error) {
       console.error("Error voting: ", error);
     }
@@ -310,8 +300,8 @@ export default function RenderReports({
                   <span
                     className="inline-flex items-center px-1.5 py-0.5 text-[9px] uppercase tracking-wider font-bold text-black border"
                     style={{
-                      backgroundColor: getColor(report.severity),
-                      borderColor: getColor(report.severity),
+                      backgroundColor: getSeverityColor(report.severity),
+                      borderColor: getSeverityColor(report.severity),
                     }}
                   >
                     {report.severity?.toUpperCase() || "LOW"}
@@ -322,7 +312,7 @@ export default function RenderReports({
                   <Button
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleVote(report.id, "up", upvoters, downvoters);
+                      handleVote(report.id, "up");
                     }}
                     variant={hasUpvoted ? "cyan" : "ghost"}
                     size="xs"
@@ -336,7 +326,7 @@ export default function RenderReports({
                   <Button
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleVote(report.id, "down", upvoters, downvoters);
+                      handleVote(report.id, "down");
                     }}
                     variant={hasDownvoted ? "red" : "ghost"}
                     size="xs"
@@ -585,7 +575,7 @@ export default function RenderReports({
             const displaySeverity =
               editingId === report.id ? editSeverity : report.severity;
             const dot = createDotIcon(
-              getColor(displaySeverity),
+              getSeverityColor(displaySeverity),
               displaySeverity || "low",
               detailReportId === report.id,
             );
@@ -632,7 +622,7 @@ export default function RenderReports({
                     displaySeverity === "high"
                       ? "animated-polyline-high"
                       : "animated-polyline",
-                  color: getColor(displaySeverity),
+                  color: getSeverityColor(displaySeverity),
                   weight: displaySeverity === "high" ? 6 : 4,
                   opacity: 0.8,
                 }}
@@ -678,7 +668,6 @@ export default function RenderReports({
               user={user}
               onVote={handleVote}
               onClose={() => setDetailReportId(null)}
-              onSelectAuthority={onSelectAuthority}
             />
           );
         })()}

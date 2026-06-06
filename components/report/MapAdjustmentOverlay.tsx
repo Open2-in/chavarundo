@@ -1,16 +1,10 @@
 import { Navigation } from "lucide-react";
-import Card from "@/components/base/Card";
-import Button from "@/components/base/Button";
+import { Card, Button } from "@/components/base";
+import { useReportWizard } from "@/store/reportFormStore";
 
-interface MapAdjustmentOverlayProps {
-  onConfirm: () => void;
-  onCancel: () => void;
-}
+export default function MapAdjustmentOverlay() {
+  const { setActiveReportForm, cancelReporting } = useReportWizard();
 
-export default function MapAdjustmentOverlay({
-  onConfirm,
-  onCancel,
-}: MapAdjustmentOverlayProps) {
   return (
     <div className="absolute z-[9999] left-4 right-4 md:left-1/2 md:-translate-x-1/2 md:w-[320px] flex flex-col items-center pointer-events-auto shadow-[0_0_20px_rgba(0,0,0,0.5)]" style={{ top: "max(1rem, var(--sat))" }}>
       <Card variant="cyber" className="w-full items-center text-center relative">
@@ -21,7 +15,7 @@ export default function MapAdjustmentOverlay({
         </p>
 
         <Button
-          onClick={onConfirm}
+          onClick={() => setActiveReportForm('detailsForm')}
           variant="cyan"
           fullWidth
         >
@@ -29,7 +23,7 @@ export default function MapAdjustmentOverlay({
         </Button>
 
         <Button
-          onClick={onCancel}
+          onClick={cancelReporting}
           variant="cancel"
           className="mt-3"
         >
@@ -39,3 +33,4 @@ export default function MapAdjustmentOverlay({
     </div>
   );
 }
+

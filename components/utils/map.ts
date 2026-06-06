@@ -1,6 +1,6 @@
 import L from "leaflet";
 
-export const getColor = (severity?: string) => {
+export const getSeverityColor = (severity?: string) => {
   switch (severity) {
     case "high":
       return "#ff003c";

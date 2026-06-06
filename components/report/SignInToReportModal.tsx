@@ -1,6 +1,5 @@
 import { loginWithGoogle } from "@/lib/firebase";
-import Dialog from "@/components/base/Dialog";
-import Button from "@/components/base/Button";
+import { Dialog, Button } from "@/components/base";
 
 interface SignInToReportModalProps {
   onClose: () => void;

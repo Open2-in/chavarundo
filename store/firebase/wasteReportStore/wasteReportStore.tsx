@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { create } from 'zustand';
 import {
   collection,
   onSnapshot,
@@ -10,7 +10,12 @@ import {
   orderBy,
   arrayUnion,
   arrayRemove,
-  getDoc
+  getDoc,
+  limit,
+  runTransaction,
+  serverTimestamp,
+  FirestoreDataConverter,
+  QueryDocumentSnapshot
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { decode } from '@googlemaps/polyline-codec';
@@ -24,64 +29,116 @@ import {
   WasteReportStoreProp
 } from './wasteReportStoreProperties';
 
-async function enrichReport(reportId: string, lat: number, lng: number) {
-  try {
-    const [adrData, constituency, roadInfo] = await Promise.all([
-      fetchAddress(lat, lng),
-      getConstituency(lat, lng),
-      fetchRoadClassification(lat, lng)
-    ]);
+const reportConverter: FirestoreDataConverter<WasteReportProp> = {
+  toFirestore(report: any) {
+    if (!report) return {};
+    const { id, ...rest } = report;
+    return rest;
+  },
+  fromFirestore(snapshot: QueryDocumentSnapshot): WasteReportProp {
+    const data = snapshot.data();
+    return {
+      id: snapshot.id,
+      userId: data.userId,
+      encodedPath: data.encodedPath,
+      createdAt: data.createdAt,
+      status: data.status,
+      severity: data.severity,
+      address: data.address,
+      district: data.district,
+      pincode: data.pincode,
+      acName: data.acName,
+      acNo: data.acNo,
+      pcName: data.pcName,
+      lsgd: data.lsgd,
+      lsgdType: data.lsgdType,
+      lsgdLabel: data.lsgdLabel,
+      lsgCode: data.lsgCode,
+      wardNo: data.wardNo,
+      wardName: data.wardName,
+      secLsgCode: data.secLsgCode,
+      highwayTag: data.highwayTag,
+      roadAuthority: data.roadAuthority,
+      distanceM: data.distanceM,
+      userPhotoURL: data.userPhotoURL,
+      notes: data.notes,
+      imageUrl: data.imageUrl,
+      upvoterIds: data.upvoterIds || [],
+      downvoterIds: data.downvoterIds || [],
+      latitude: data.latitude,
+      longitude: data.longitude,
+    } as WasteReportProp;
+  }
+};
 
-    console.log('adrData', adrData)
+async function enrichReport(reportId: string, lat: number, lng: number, retries = 3, delay = 1000) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const [adrData, constituency, roadInfo] = await Promise.all([
+        fetchAddress(lat, lng),
+        getConstituency(lat, lng),
+        fetchRoadClassification(lat, lng)
+      ]);
 
-    const updates: Record<string, any> = {};
+      console.log('adrData', adrData);
 
-    if (adrData?.display_name) {
-      updates.address = adrData.display_name;
-    }
-    const districtVal =
-      adrData?.address?.state_district ||
-      adrData?.address?.county ||
-      adrData?.address?.city_district ||
-      null;
-    if (districtVal) {
-      updates.district = districtVal;
-    }
-    if (adrData?.address?.postcode) {
-      updates.pincode = adrData.address.postcode;
-    }
+      const updates: Record<string, any> = {};
 
-    if (constituency) {
-      updates.acName = constituency.acName;
-      updates.acNo = constituency.acNo;
-      updates.pcName = constituency.pcName;
-      if (constituency.lsgd) updates.lsgd = constituency.lsgd;
-      if (constituency.lsgdType) updates.lsgdType = constituency.lsgdType;
-      if (constituency.lsgdLabel) updates.lsgdLabel = constituency.lsgdLabel;
-      if (constituency.wardNo != null) updates.wardNo = constituency.wardNo;
-      if (constituency.wardName) updates.wardName = constituency.wardName;
-      if (constituency.secLsgCode) updates.secLsgCode = constituency.secLsgCode;
-    }
+      if (adrData?.display_name) {
+        updates.address = adrData.display_name;
+      }
+      const districtVal =
+        adrData?.address?.state_district ||
+        adrData?.address?.county ||
+        adrData?.address?.city_district ||
+        null;
+      if (districtVal) {
+        updates.district = districtVal;
+      }
+      if (adrData?.address?.postcode) {
+        updates.pincode = adrData.address.postcode;
+      }
 
-    if (roadInfo) {
-      updates.highwayTag = roadInfo.highwayTag;
-      updates.roadAuthority = roadInfo.roadAuthority;
-    }
+      if (constituency) {
+        updates.acName = constituency.acName;
+        updates.acNo = constituency.acNo;
+        updates.pcName = constituency.pcName;
+        if (constituency.lsgd) updates.lsgd = constituency.lsgd;
+        if (constituency.lsgdType) updates.lsgdType = constituency.lsgdType;
+        if (constituency.lsgdLabel) updates.lsgdLabel = constituency.lsgdLabel;
+        if (constituency.wardNo != null) updates.wardNo = constituency.wardNo;
+        if (constituency.wardName) updates.wardName = constituency.wardName;
+        if (constituency.secLsgCode) updates.secLsgCode = constituency.secLsgCode;
+      }
 
-    if (Object.keys(updates).length > 0) {
-      const docRef = doc(db, 'waste_reports', reportId);
-      await updateDoc(docRef, updates);
+      if (roadInfo) {
+        updates.highwayTag = roadInfo.highwayTag;
+        updates.roadAuthority = roadInfo.roadAuthority;
+      }
+
+      if (Object.keys(updates).length > 0) {
+        const docRef = doc(db, 'waste_reports', reportId).withConverter(reportConverter);
+        await updateDoc(docRef, updates);
+      }
+      return; // Success!
+    } catch (err) {
+      console.warn(`Enrichment attempt ${i + 1} failed:`, err);
+      if (i === retries - 1) {
+        console.error('Error enriching report in background after retries:', err);
+      } else {
+        await new Promise((res) => setTimeout(res, delay * Math.pow(2, i)));
+      }
     }
-  } catch (err) {
-    console.error('Error enriching report in background:', err);
   }
 }
 
-// Global actions to manipulate Firestore waste reports
-
 export const addRecord = async (payload: CreateWasteReportInputProp): Promise<string> => {
   try {
-    const docRef = await addDoc(collection(db, 'waste_reports'), payload);
+    const payloadWithTime = {
+      ...payload,
+      createdAt: payload.createdAt || serverTimestamp(),
+    };
+    const docRef = await addDoc(collection(db, 'waste_reports').withConverter(reportConverter), payloadWithTime);
     const reportId = docRef.id;
 
     // Extract coordinates to trigger enrichment in background
@@ -114,7 +171,7 @@ export const addRecord = async (payload: CreateWasteReportInputProp): Promise<st
 
 export const deleteRecord = async (id: string): Promise<void> => {
   try {
-    const docRef = doc(db, 'waste_reports', id);
+    const docRef = doc(db, 'waste_reports', id).withConverter(reportConverter);
     await deleteDoc(docRef);
   } catch (err: any) {
     console.error('Firestore deleteRecord error:', err);
@@ -124,7 +181,15 @@ export const deleteRecord = async (id: string): Promise<void> => {
 
 export const editRecord = async (id: string, updates: UpdateWasteReportInputProp): Promise<void> => {
   try {
-    const docRef = doc(db, 'waste_reports', id);
+    const docRef = doc(db, 'waste_reports', id).withConverter(reportConverter);
+    
+    // Fetch existing document to check if coordinates changed
+    const existingSnap = await getDoc(docRef);
+    if (!existingSnap.exists()) {
+      throw new Error("Document does not exist");
+    }
+    const existingData = existingSnap.data();
+
     await updateDoc(docRef, updates);
 
     // If coordinates or encodedPath changed, trigger background enrichment
@@ -144,8 +209,11 @@ export const editRecord = async (id: string, updates: UpdateWasteReportInputProp
     }
 
     if (lat !== undefined && lng !== undefined) {
-      // Run background enrichment without awaiting
-      enrichReport(id, lat, lng).catch(() => { });
+      // Only enrich if coordinates actually changed
+      const coordsChanged = existingData.latitude !== lat || existingData.longitude !== lng;
+      if (coordsChanged) {
+        enrichReport(id, lat, lng).catch(() => { });
+      }
     }
   } catch (err: any) {
     console.error('Firestore editRecord error:', err);
@@ -156,118 +224,141 @@ export const editRecord = async (id: string, updates: UpdateWasteReportInputProp
 export const voteRecord = async (
   id: string,
   type: 'up' | 'down',
-  userId: string,
-  currentUpvoters: string[] = [],
-  currentDownvoters: string[] = []
+  userId: string
 ): Promise<void> => {
   try {
-    const docRef = doc(db, 'waste_reports', id);
-    const hasUpvoted = currentUpvoters.includes(userId);
-    const hasDownvoted = currentDownvoters.includes(userId);
-
-    const updates: Record<string, any> = {};
-
-    if (type === 'up') {
-      if (hasUpvoted) {
-        updates.upvoterIds = arrayRemove(userId);
-      } else {
-        updates.upvoterIds = arrayUnion(userId);
-        if (hasDownvoted) {
-          updates.downvoterIds = arrayRemove(userId);
-        }
+    const docRef = doc(db, 'waste_reports', id).withConverter(reportConverter);
+    await runTransaction(db, async (transaction) => {
+      const sfDoc = await transaction.get(docRef);
+      if (!sfDoc.exists()) {
+        throw new Error("Document does not exist!");
       }
-    } else {
-      if (hasDownvoted) {
-        updates.downvoterIds = arrayRemove(userId);
-      } else {
-        updates.downvoterIds = arrayUnion(userId);
+
+      const data = sfDoc.data() || {};
+      const upvoterIds = (data.upvoterIds || []) as string[];
+      const downvoterIds = (data.downvoterIds || []) as string[];
+
+      const hasUpvoted = upvoterIds.includes(userId);
+      const hasDownvoted = downvoterIds.includes(userId);
+
+      let newUpvoterIds = [...upvoterIds];
+      let newDownvoterIds = [...downvoterIds];
+
+      if (type === 'up') {
         if (hasUpvoted) {
-          updates.upvoterIds = arrayRemove(userId);
+          newUpvoterIds = newUpvoterIds.filter(uid => uid !== userId);
+        } else {
+          newUpvoterIds.push(userId);
+          newDownvoterIds = newDownvoterIds.filter(uid => uid !== userId);
+        }
+      } else {
+        if (hasDownvoted) {
+          newDownvoterIds = newDownvoterIds.filter(uid => uid !== userId);
+        } else {
+          newDownvoterIds.push(userId);
+          newUpvoterIds = newUpvoterIds.filter(uid => uid !== userId);
         }
       }
-    }
 
-    await updateDoc(docRef, updates);
+      transaction.update(docRef, {
+        upvoterIds: newUpvoterIds,
+        downvoterIds: newDownvoterIds
+      });
+    });
   } catch (err: any) {
     console.error('Firestore voteRecord error:', err);
     throw err;
   }
 };
 
-// Global react hook to listen to updates and return actions
-export function useWasteReports(): WasteReportStoreProp {
-  const [reports, setReports] = useState<WasteReportProp[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    setLoading(true);
-    setError(null);
-    const q = query(collection(db, 'waste_reports'), orderBy('createdAt', 'desc'));
-
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const reportsList: WasteReportProp[] = [];
-        snapshot.forEach((doc) => {
-          reportsList.push({
-            id: doc.id,
-            ...(doc.data() as Omit<WasteReportProp, 'id'>),
-          } as WasteReportProp);
-        });
-        setReports(reportsList);
-        setLoading(false);
-      },
-      (err) => {
-        console.error('Firestore subscription error:', err);
-        setError(err.message);
-        setLoading(false);
-      }
-    );
-
-    return unsubscribe;
-  }, []);
-
-  const [draft, setDraft] = useState<Partial<WasteReportProp>>({});
-
-  const updateDraft = (updates: Partial<WasteReportProp>) => {
-    setDraft((prev) => ({ ...prev, ...updates }));
-  };
-
-  const clearDraft = () => {
-    setDraft({});
-  };
-
-  const getRecord = async (id: string): Promise<WasteReportProp | null> => {
-    const local = reports.find((r) => r.id === id);
-    if (local) return local;
-
-    try {
-      const docRef = doc(db, 'waste_reports', id);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        return {
-          id: docSnap.id,
-          ...(docSnap.data() as Omit<WasteReportProp, 'id'>)
-        } as WasteReportProp;
-      }
-    } catch (err) {
-      console.error('Error fetching document from Firestore:', err);
-    }
-    return null;
-  };
-
+export const useWasteReports = create<WasteReportStoreProp>((set, get) => {
   return {
-    reports,
-    loading,
-    error,
-    addRecord,
-    deleteRecord,
-    getRecord,
-    editRecord,
-    voteRecord,
-    draft,
-    updateDraft,
-    clearDraft
+    reports: [],
+    loading: true,
+    isCreating: false,
+    isUpdating: false,
+    isDeleting: false,
+    isVoting: false,
+    error: null,
+    draft: {},
+    updateDraft: (updates) => {
+      set((state) => ({ draft: { ...state.draft, ...updates } }));
+    },
+    clearDraft: () => {
+      set({ draft: {} });
+    },
+    getRecord: async (id: string) => {
+      const local = get().reports.find((r) => r.id === id);
+      if (local) return local;
+
+      try {
+        const docRef = doc(db, 'waste_reports', id).withConverter(reportConverter);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          return docSnap.data();
+        }
+      } catch (err) {
+        console.error('Error fetching document from Firestore:', err);
+      }
+      return null;
+    },
+    addRecord: async (payload) => {
+      set({ isCreating: true });
+      try {
+        const id = await addRecord(payload);
+        return id;
+      } finally {
+        set({ isCreating: false });
+      }
+    },
+    deleteRecord: async (id) => {
+      set({ isDeleting: true });
+      try {
+        await deleteRecord(id);
+      } finally {
+        set({ isDeleting: false });
+      }
+    },
+    editRecord: async (id, updates) => {
+      set({ isUpdating: true });
+      try {
+        await editRecord(id, updates);
+      } finally {
+        set({ isUpdating: false });
+      }
+    },
+    voteRecord: async (id, type, userId) => {
+      set({ isVoting: true });
+      try {
+        await voteRecord(id, type, userId);
+      } finally {
+        set({ isVoting: false });
+      }
+    },
+    initialize: () => {
+      set({ loading: true, error: null });
+      const q = query(
+        collection(db, 'waste_reports').withConverter(reportConverter),
+        orderBy('createdAt', 'desc'),
+        limit(200)
+      );
+
+      const unsubscribe = onSnapshot(
+        q,
+        (snapshot) => {
+          const reportsList: WasteReportProp[] = [];
+          snapshot.forEach((doc) => {
+            reportsList.push(doc.data());
+          });
+          set({ reports: reportsList, loading: false });
+        },
+        (err) => {
+          console.error('Firestore subscription error:', err);
+          set({ error: err.message, loading: false });
+        }
+      );
+
+      return unsubscribe;
+    }
   };
-}
+});

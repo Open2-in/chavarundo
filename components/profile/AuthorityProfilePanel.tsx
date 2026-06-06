@@ -17,42 +17,32 @@ import {
   ExternalLink,
 } from "lucide-react";
 
-import { getColor, formatShortDate } from "./types";
-import Sheet from "@/components/base/Sheet";
+import { getSeverityColor, formatShortDate } from "@/components/utils";
+import { Sheet } from "@/components/base";
+import { useUI } from "@/store/uiStore";
+import { useMapSelection } from "@/store/mapStore";
+import { useWasteReports } from "@/store/firebase";
 
-export interface AuthoritySubject {
-  type: "mla" | "mp" | "ward" | "lsgd" | "district";
-  name: string;
-  party?: string | null;
-  phone?: string | null;
-  email?: string | null;
-  idKey: string | number; // e.g. acNo for MLA, pcName for MP, secLsgCode for Ward, lsgCode for LSGD
-  subIdKey?: string | number; // e.g. wardNo for Ward
-  label?: string; // e.g. "Assembly Constituency"
-}
-
-export interface AuthorityProfilePanelProps {
-  isOpen: boolean;
-  onClose: () => void;
-  subject: AuthoritySubject | null;
-  reports: any[];
-  onNavigateToReport?: (reportId: string) => void;
-}
+import { AuthoritySubject } from "@/types";
 
 type PanelView = "profile" | "reports";
 
-export default function AuthorityProfilePanel({
-  isOpen,
-  onClose,
-  subject,
-  reports = [],
-  onNavigateToReport,
-}: AuthorityProfilePanelProps) {
+export default function AuthorityProfilePanel() {
+  const { activePanel, setActivePanel } = useUI();
+  const isOpen = activePanel === "authority";
+  const { authoritySubject: subject, setPendingDeepLinkId } = useMapSelection();
+  const reports = useWasteReports((s) => s.reports);
+
   const [view, setView] = useState<PanelView>("profile");
 
   // Reset view when panel closes
   const handleClose = () => {
-    onClose();
+    setActivePanel(null);
+  };
+
+  const onNavigateToReport = (id: string) => {
+    setActivePanel(null);
+    setPendingDeepLinkId(id);
   };
 
   useEffect(() => {
@@ -143,24 +133,26 @@ export default function AuthorityProfilePanel({
   if (!subject) return null;
 
   // Determine role label and icon
-  const roleLabel = {
+  const roleMap: Record<"mla" | "mp" | "ward" | "lsgd" | "district", string> = {
     mla: "Member of Legislative Assembly (MLA)",
     mp: "Member of Parliament (MP)",
     ward: "Ward Member (Local Body Representative)",
     lsgd: "Local Self Government Body (LSGD)",
     district: "District Administration",
-  }[subject.type];
+  };
+  const roleLabel = roleMap[subject.type as "mla" | "mp" | "ward" | "lsgd" | "district"];
 
-  const IconComponent = {
+  const iconMap: Record<"mla" | "mp" | "ward" | "lsgd" | "district", React.ComponentType<any>> = {
     mla: Shield,
     mp: Landmark,
     ward: User,
     lsgd: Landmark,
     district: Landmark,
-  }[subject.type];
+  };
+  const IconComponent = iconMap[subject.type as "mla" | "mp" | "ward" | "lsgd" | "district"];
 
   const handleViewOnMap = (reportId: string) => {
-    onNavigateToReport?.(reportId);
+    onNavigateToReport(reportId);
     handleClose();
   };
 
@@ -405,8 +397,8 @@ export default function AuthorityProfilePanel({
                           <div
                             className="w-3 h-3 rounded-full"
                             style={{
-                              backgroundColor: getColor(report.severity),
-                              boxShadow: `0 0 8px ${getColor(report.severity)}60`,
+                              backgroundColor: getSeverityColor(report.severity),
+                              boxShadow: `0 0 8px ${getSeverityColor(report.severity)}60`,
                             }}
                           />
                         </div>
@@ -425,9 +417,9 @@ export default function AuthorityProfilePanel({
                             <span
                               className="text-[8px] uppercase tracking-wider font-bold px-1 py-px border"
                               style={{
-                                color: getColor(report.severity),
-                                borderColor: getColor(report.severity) + "60",
-                                backgroundColor: getColor(report.severity) + "10",
+                                color: getSeverityColor(report.severity),
+                                borderColor: getSeverityColor(report.severity) + "60",
+                                backgroundColor: getSeverityColor(report.severity) + "10",
                               }}
                             >
                               {(report.severity || "low").toUpperCase()}

@@ -1,25 +1,72 @@
 import { useState, useRef } from "react";
 import { Camera } from "lucide-react";
-import Dialog from "@/components/base/Dialog";
-import Button from "@/components/base/Button";
+import { Dialog, Button } from "@/components/base";
+import { useReportWizard } from "@/store/reportFormStore";
 
-interface PhotoCaptureModalProps {
-  onClose: () => void;
-  onPhotoSelected: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  errorMsg: string | null;
-  setErrorMsg: (msg: string | null) => void;
-  setCoords: (coords: { lat: number; lng: number }) => void;
-}
-
-export default function PhotoCaptureModal({
-  onClose,
-  onPhotoSelected,
-  errorMsg,
-  setErrorMsg,
-  setCoords,
-}: PhotoCaptureModalProps) {
+export default function PhotoCaptureModal() {
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const [isLocating, setIsLocating] = useState(false);
+
+  const {
+    exifError: errorMsg,
+    setExifError: setErrorMsg,
+    setReportImage,
+    setActiveReportForm,
+    setCoords,
+    cancelReporting,
+  } = useReportWizard();
+
+  const handleReportPhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setErrorMsg(null);
+    setReportImage(null);
+
+    try {
+      const isHeic = file.type === "image/heic" || file.type === "image/heif"
+        || file.name.toLowerCase().endsWith(".heic") || file.name.toLowerCase().endsWith(".heif");
+
+      let checkBlob: Blob = file;
+      if (isHeic) {
+        const heic2any = (await import("heic2any")).default;
+        const converted = await heic2any({ blob: file, toType: "image/jpeg", quality: 0.9 });
+        checkBlob = Array.isArray(converted) ? converted[0] : converted;
+      }
+
+      const img = new Image();
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          img.onload = () => {
+            const canvas = document.createElement("canvas");
+            const MAX = 800;
+            let w = img.width, h = img.height;
+            if (w > h) { if (w > MAX) { h *= MAX / w; w = MAX; } }
+            else { if (h > MAX) { w *= MAX / h; h = MAX; } }
+            canvas.width = w; canvas.height = h;
+            const ctx = canvas.getContext("2d");
+            if (ctx) {
+              ctx.drawImage(img, 0, 0, w, h);
+              const url = canvas.toDataURL("image/jpeg", 0.6);
+              resolve(url);
+            } else {
+              reject(new Error("canvas_error"));
+            }
+          };
+          img.onerror = () => reject(new Error("img_load"));
+          if (ev.target?.result) img.src = ev.target.result as string;
+        };
+        reader.readAsDataURL(checkBlob);
+      });
+
+      setReportImage(dataUrl);
+      setActiveReportForm('locationAdjust');
+    } catch (err: any) {
+      console.error(err);
+      setErrorMsg("Failed to read image. Please try another photo.");
+    }
+  };
 
   const handleUseCameraClick = () => {
     setIsLocating(true);
@@ -63,7 +110,7 @@ export default function PhotoCaptureModal({
   return (
     <Dialog
       isOpen={true}
-      onClose={onClose}
+      onClose={cancelReporting}
       step="Step 1: Capture Image"
     >
       <div className="flex flex-col gap-2 text-center my-2">
@@ -89,7 +136,7 @@ export default function PhotoCaptureModal({
           accept="image/*"
           capture="environment"
           className="hidden"
-          onChange={onPhotoSelected}
+          onChange={handleReportPhotoChange}
         />
       </div>
 
@@ -102,3 +149,4 @@ export default function PhotoCaptureModal({
     </Dialog>
   );
 }
+

@@ -4,7 +4,7 @@ import { useTheme } from "next-themes";
 import { decode } from "@googlemaps/polyline-codec";
 import { fetchWithAppCheck } from "@/lib/appcheck-fetch";
 import { useWasteReports } from "@/store/firebase";
-import { getColor, createDotIcon, getRoadAuthority } from "../utils";
+import { getSeverityColor, createDotIcon, getRoadAuthority } from "@/components/utils";
 
 interface MiniMapProps {
   reportId: string;
@@ -26,7 +26,7 @@ export default function MiniMap({
   const [roadAuthority, setRoadAuthority] = useState(initialRoadAuthority);
   const [highwayTag, setHighwayTag] = useState(initialHighwayTag);
   const { resolvedTheme: theme } = useTheme();
-  const { editRecord } = useWasteReports();
+  const editRecord = useWasteReports((s) => s.editRecord);
 
   const coords = decode(encodedPath).map(([lat, lng]) => [lat, lng] as [number, number]);
 
@@ -52,7 +52,7 @@ export default function MiniMap({
       { maxZoom: 19 }
     ).addTo(map);
 
-    const color = getColor(severity);
+    const color = getSeverityColor(severity);
     if (coords.length === 1) {
       const dot = createDotIcon(color, severity, false);
       if (dot) {

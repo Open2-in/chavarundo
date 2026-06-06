@@ -10,8 +10,8 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { useWasteReports } from "@/store/firebase";
-import type { UserStats } from "./types";
-import { getColor, formatShortDate } from "./types";
+import type { UserStats } from "@/types";
+import { getSeverityColor, formatShortDate } from "@/components/utils";
 
 interface ContributionsListProps {
   myReports: any[];
@@ -31,7 +31,7 @@ export default function ContributionsList({
 }: ContributionsListProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deletingInProgress, setDeletingInProgress] = useState(false);
-  const { deleteRecord } = useWasteReports();
+  const deleteRecord = useWasteReports((s) => s.deleteRecord);
 
   const handleDelete = async (id: string) => {
     setDeletingInProgress(true);
@@ -93,8 +93,8 @@ export default function ContributionsList({
                   <div
                     className="w-3 h-3 rounded-full"
                     style={{
-                      backgroundColor: getColor(report.severity),
-                      boxShadow: `0 0 8px ${getColor(report.severity)}60`,
+                      backgroundColor: getSeverityColor(report.severity),
+                      boxShadow: `0 0 8px ${getSeverityColor(report.severity)}60`,
                     }}
                   />
                 </div>
@@ -113,9 +113,9 @@ export default function ContributionsList({
                     <span
                       className="text-[8px] uppercase tracking-wider font-bold px-1 py-px border"
                       style={{
-                        color: getColor(report.severity),
-                        borderColor: getColor(report.severity) + "60",
-                        backgroundColor: getColor(report.severity) + "10",
+                        color: getSeverityColor(report.severity),
+                        borderColor: getSeverityColor(report.severity) + "60",
+                        backgroundColor: getSeverityColor(report.severity) + "10",
                       }}
                     >
                       {(report.severity || "low").toUpperCase()}

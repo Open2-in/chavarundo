@@ -4,7 +4,10 @@ import { useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Trophy, Flag, ThumbsUp, Crown, Medal } from "lucide-react";
 
-import Sheet from "@/components/base/Sheet";
+import { Sheet } from "@/components/base";
+import { useUI } from "@/store/uiStore";
+import { useMapSelection } from "@/store/mapStore";
+import { useWasteReports } from "@/store/firebase";
 
 interface LeaderboardEntry {
   userId: string;
@@ -18,20 +21,17 @@ interface LeaderboardEntry {
   score: number;
 }
 
-interface LeaderboardPanelProps {
-  isOpen: boolean;
-  onClose: () => void;
-  reports: any[];
-  /** Called when a row is clicked to open that contributor's profile. */
-  onSelectUser?: (u: { uid: string; name: string; photoURL?: string }) => void;
-}
+export default function LeaderboardPanel() {
+  const { activePanel, setActivePanel } = useUI();
+  const isOpen = activePanel === "leaderboard";
+  const reports = useWasteReports((s) => s.reports);
+  const { setProfileSubject } = useMapSelection();
 
-export default function LeaderboardPanel({
-  isOpen,
-  onClose,
-  reports = [],
-  onSelectUser,
-}: LeaderboardPanelProps) {
+  const onClose = () => setActivePanel(null);
+  const onSelectUser = (u: { uid: string; name: string; photoURL?: string }) => {
+    setProfileSubject(u);
+    setActivePanel('profile');
+  };
   const { leaderboard, totalUpvotes } = useMemo(() => {
     const userMap = new Map<string, LeaderboardEntry>();
     let totalUpvotes = 0;
@@ -177,14 +177,13 @@ export default function LeaderboardPanel({
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.04, duration: 0.3 }}
                   onClick={() =>
-                    onSelectUser?.({
+                    onSelectUser({
                       uid: entry.userId,
                       name: entry.userName,
                       photoURL: entry.userPhotoURL,
                     })
                   }
-                  disabled={!onSelectUser}
-                  className={`w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-all ${getRankBorder(index)} hover:scale-[1.01] hover:shadow-md ${onSelectUser ? "cursor-pointer" : "cursor-default"}`}
+                  className={`w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-all ${getRankBorder(index)} hover:scale-[1.01] hover:shadow-md cursor-pointer`}
                 >
                   {/* Rank */}
                   <div className="shrink-0">{getRankIcon(index)}</div>

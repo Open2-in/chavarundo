@@ -10,3 +10,4 @@ const LeafletWasteMap = dynamic(() => import("./map"), {
 export default function MapLoader({ initialReports }: { initialReports?: SerializedReport[] }) {
   return <LeafletWasteMap initialReports={initialReports} />;
 }
+

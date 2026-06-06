@@ -1,26 +1,53 @@
 import { CheckCircle, MapPinIcon } from "lucide-react";
-import Dialog from "@/components/base/Dialog";
-import Button from "@/components/base/Button";
+import { Dialog, Button } from "@/components/base";
+import { useWasteReports } from "@/store/firebase";
+import { useAIReview } from "@/store/reportFormStore";
 
-interface AIReviewOverlayProps {
-  image: string;
-  isReviewing: boolean;
-  reviewPhase: 'road' | 'ai';
-  result: { success: boolean; verified: boolean; reasoning: string; phase?: 'road' | 'ai' } | null;
-  onConfirm: () => void;
-  onRetake: () => void;
-  onCancel: () => void;
-}
+export default function AIReviewOverlay() {
+  const addRecord = useWasteReports((s) => s.addRecord);
 
-export default function AIReviewOverlay({
-  image,
-  isReviewing,
-  reviewPhase,
-  result,
-  onConfirm,
-  onRetake,
-  onCancel,
-}: AIReviewOverlayProps) {
+  const {
+    image,
+    isReviewing,
+    reviewPhase,
+    result,
+    pendingReportPayload,
+    adjustedCoords,
+    setActiveReportForm,
+    resetReviewState,
+    cancelReporting,
+  } = useAIReview();
+
+  const handleConfirm = async () => {
+    const payload = pendingReportPayload;
+    const coords = adjustedCoords;
+    const isVerified = result?.verified;
+    cancelReporting(); // Reset UI immediately — enrichment runs in background
+
+    if (!payload || !coords) return;
+
+    try {
+      const status = isVerified ? "verified" : "pending";
+      const payloadToWrite = {
+        ...payload,
+        status,
+      };
+
+      await addRecord(payloadToWrite);
+    } catch (e) {
+      console.error("Report submission failed:", e);
+    }
+  };
+
+  const handleRetake = () => {
+    resetReviewState();
+    setActiveReportForm('photoCapture'); // Back to photo capture
+  };
+
+  const handleCancel = () => {
+    cancelReporting();
+  };
+
   return (
     <>
       <style>{`
@@ -58,10 +85,12 @@ export default function AIReviewOverlay({
             </div>
 
             {/* Scan animation container */}
-            <div className="relative w-full h-44 rounded-xl border border-cyan-500/30 overflow-hidden bg-black flex items-center justify-center">
-              <img src={image} alt="Scanning" className="w-full h-full object-cover opacity-70" />
-              <div className="scanner-line-active absolute left-0 w-full h-0.5 bg-cyan-500 shadow-[0_0_8px_#00f0ff,0_0_15px_#00f0ff]" />
-            </div>
+            {image && (
+              <div className="relative w-full h-44 rounded-xl border border-cyan-500/30 overflow-hidden bg-black flex items-center justify-center">
+                <img src={image} alt="Scanning" className="w-full h-full object-cover opacity-70" />
+                <div className="scanner-line-active absolute left-0 w-full h-0.5 bg-cyan-500 shadow-[0_0_8px_#00f0ff,0_0_15px_#00f0ff]" />
+              </div>
+            )}
 
             <div className="flex flex-col items-center gap-2 mt-1">
               <div className="text-[10px] text-cyan-400/80 animate-pulse">
@@ -94,9 +123,11 @@ export default function AIReviewOverlay({
               </div>
             )}
 
-            <div className="relative w-full max-h-32 rounded-xl border border-neutral-800 overflow-hidden bg-neutral-900/50">
-              <img src={image} alt="Reported spot" className="w-full h-full object-cover opacity-80 max-h-32" />
-            </div>
+            {image && (
+              <div className="relative w-full max-h-32 rounded-xl border border-neutral-800 overflow-hidden bg-neutral-900/50">
+                <img src={image} alt="Reported spot" className="w-full h-full object-cover opacity-80 max-h-32" />
+              </div>
+            )}
 
             <div className="flex flex-col gap-1 text-left bg-neutral-900/50 border border-neutral-800 p-3 rounded-xl max-h-28 overflow-y-auto">
               <span className="text-[8px] uppercase font-bold tracking-widest text-neutral-500">AI Assessment Reasoning:</span>
@@ -107,7 +138,7 @@ export default function AIReviewOverlay({
 
             {result.verified ? (
               <Button
-                onClick={onConfirm}
+                onClick={handleConfirm}
                 variant="green"
                 fullWidth
               >
@@ -116,21 +147,21 @@ export default function AIReviewOverlay({
             ) : (
               <div className="flex flex-col gap-2 w-full">
                 <Button
-                  onClick={onRetake}
+                  onClick={handleRetake}
                   variant="cyan"
                   fullWidth
                 >
                   ↩ Retake Image
                 </Button>
                 <Button
-                  onClick={onConfirm}
+                  onClick={handleConfirm}
                   variant="yellow"
                   fullWidth
                 >
                   Request Review
                 </Button>
                 <Button
-                  onClick={onCancel}
+                  onClick={handleCancel}
                   variant="ghost"
                   className="bg-neutral-900 hover:bg-red-900/60 text-red-400 border border-red-500/30 hover:border-red-500/60"
                   fullWidth
@@ -145,3 +176,4 @@ export default function AIReviewOverlay({
     </>
   );
 }
+

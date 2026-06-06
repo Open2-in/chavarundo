@@ -1,6 +1,6 @@
 import { Award, MapPin, Calendar, ThumbsDown } from "lucide-react";
-import type { UserStats } from "./types";
-import { formatDate } from "./types";
+import type { UserStats } from "@/types";
+import { formatLongDate } from "@/components/utils";
 
 interface ActivityDetailsProps {
   stats: UserStats;
@@ -21,12 +21,12 @@ export default function ActivityDetails({ stats }: ActivityDetailsProps) {
       <DetailRow
         icon={<Calendar className="w-3.5 h-3.5" />}
         label="First Report"
-        value={formatDate(stats.firstReportDate)}
+        value={formatLongDate(stats.firstReportDate)}
       />
       <DetailRow
         icon={<Calendar className="w-3.5 h-3.5" />}
         label="Latest Report"
-        value={formatDate(stats.latestReportDate)}
+        value={formatLongDate(stats.latestReportDate)}
       />
       <DetailRow
         icon={<ThumbsDown className="w-3.5 h-3.5" />}

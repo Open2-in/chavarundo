@@ -1,29 +1,30 @@
 import { useState, useEffect } from "react";
-import { useAuthStore } from "@/lib/store";
 import { useWasteReports } from "@/store/firebase";
+import { useReportWizard } from "@/store/reportFormStore";
+import { useUser } from "@/store/userStore";
 import { fetchAddress } from "@/services/geo";
-import { clampReporterName, getStoredReporterName } from "../utils";
+import { clampReporterName, getStoredReporterName, saveReporterName } from "@/components/utils";
+import { encode } from "@googlemaps/polyline-codec";
+import { serverTimestamp } from "firebase/firestore";
 
-import Card from "@/components/base/Card";
-import Button from "@/components/base/Button";
-import Input from "@/components/base/Input";
-import Textarea from "@/components/base/Textarea";
+import { fetchWithAppCheck } from "@/lib/appcheck-fetch";
 
-interface SubmitReportFormProps {
-  image: string;
-  coords: { lat: number; lng: number };
-  onCancel: () => void;
-  onSubmit: (data: { name: string; severity: "low" | "medium" | "high"; notes: string }) => void;
-}
+import { Card, Button, Input, Textarea } from "@/components/base";
 
-export default function SubmitReportForm({
-  image,
-  coords,
-  onCancel,
-  onSubmit,
-}: SubmitReportFormProps) {
-  const { draft, updateDraft } = useWasteReports();
-  const user = useAuthStore((state) => state.user);
+export default function SubmitReportForm() {
+  const draft = useWasteReports((s) => s.draft);
+  const updateDraft = useWasteReports((s) => s.updateDraft);
+
+  const {
+    reportImage: image,
+    adjustedCoords: coords,
+    setIsAIReviewing,
+    setAiReviewResult,
+    startAIReview,
+    cancelReporting,
+  } = useReportWizard();
+
+  const { user, loginAnonymously } = useUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -37,6 +38,7 @@ export default function SubmitReportForm({
   }, [user]);
 
   useEffect(() => {
+    if (!coords) return;
     let active = true;
     fetchAddress(coords.lat, coords.lng).then((data: any) => {
       if (active) {
@@ -46,16 +48,81 @@ export default function SubmitReportForm({
     return () => { active = false; };
   }, [coords]);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    if (!coords || !image) return;
     setIsSubmitting(true);
-    onSubmit({
-      name: draft.userName || "Anonymous",
-      severity: draft.severity || "low",
-      notes: draft.notes || "",
-    });
+
+    try {
+      let currentReporter = user;
+      if (!currentReporter) {
+        await loginAnonymously();
+        const { auth: firebaseAuth } = await import("@/lib/firebase");
+        currentReporter = firebaseAuth.currentUser;
+      }
+      if (!currentReporter) throw new Error("Authentication failed");
+
+      const pt: [number, number] = [coords.lat, coords.lng];
+      const encodedPath = encode([pt], 5);
+
+      const name = draft.userName || "Anonymous";
+      const severity = draft.severity || "low";
+      const notes = draft.notes || "";
+
+      // Minimal payload — enrichment (address, constituency, road) runs after AI review
+      const payload: any = {
+        userId: currentReporter.uid,
+        userName: name.trim() || "Anonymous",
+        encodedPath,
+        latitude: pt[0],
+        longitude: pt[1],
+        createdAt: serverTimestamp(),
+        severity: severity,
+        imageUrl: image,
+        upvoterIds: [],
+      };
+
+      if (currentReporter.photoURL) payload.userPhotoURL = currentReporter.photoURL;
+      if (notes.trim()) payload.notes = notes.trim();
+
+      saveReporterName(name);
+
+      startAIReview(payload);
+      const checkRes = await fetchWithAppCheck("/api/garbage/check", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ imageUrl: image }),
+      });
+
+      if (!checkRes.ok) {
+        throw new Error("AI service check request failed.");
+      }
+
+      const checkData = await checkRes.json();
+      setAiReviewResult({
+        success: checkData.success,
+        verified: checkData.verified,
+        reasoning: checkData.reasoning || "No explanation provided.",
+        phase: 'ai',
+      });
+    } catch (e: any) {
+      console.error(e);
+      setAiReviewResult({
+        success: false,
+        verified: false,
+        reasoning: e.message || "An unexpected error occurred during submission.",
+        phase: 'ai',
+      });
+    } finally {
+      setIsAIReviewing(false);
+      setIsSubmitting(false);
+    }
   };
 
   const severity = draft.severity || "low";
+
+  if (!image || !coords) return null;
 
   return (
     <div className="absolute z-[9999] left-4 right-4 md:left-1/2 md:-translate-x-1/2 md:w-[340px] flex flex-col items-center pointer-events-auto shadow-[0_0_20px_rgba(0,0,0,0.5)]" style={{ top: "max(1rem, var(--sat))" }}>
@@ -127,7 +194,7 @@ export default function SubmitReportForm({
             Submit for review
           </Button>
           <Button
-            onClick={onCancel}
+            onClick={cancelReporting}
             disabled={isSubmitting}
             variant="cancel"
             className="py-1"
@@ -139,3 +206,4 @@ export default function SubmitReportForm({
     </div>
   );
 }
+

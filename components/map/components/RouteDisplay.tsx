@@ -2,33 +2,31 @@ import { useState, useEffect } from "react";
 import { useMap, Polyline, Marker } from "react-leaflet";
 import { decode } from "@googlemaps/polyline-codec";
 import L from "leaflet";
-import { getColor, redMarkerIcon } from "../utils";
+import { getSeverityColor, redMarkerIcon } from "@/components/utils";
+import { useMapRoute } from "@/store/mapStore";
 
 const MAX_ROUTE_METERS = 1000;
 
-interface RouteDisplayProps {
-  origin: { lat: number; lng: number };
-  destination: { lat: number; lng: number };
-  onRouteFound: (encoded: string, distanceM: number) => void;
-  onError: (msg: string) => void;
-  severity: "low" | "medium" | "high";
-}
+export default function RouteDisplay() {
+  const {
+    origin,
+    destination,
+    severity,
+    setRouteData: onRouteFound,
+    setRouteError: onError,
+  } = useMapRoute();
 
-export default function RouteDisplay({
-  origin,
-  destination,
-  onRouteFound,
-  onError,
-  severity,
-}: RouteDisplayProps) {
   const map = useMap();
   const [routePath, setRoutePath] = useState<[number, number][] | null>(null);
 
   useEffect(() => {
+    if (!origin || !destination) return;
+    const currentOrigin = origin;
+    const currentDestination = destination;
     async function fetchRoute() {
       try {
         const response = await fetch(
-          `https://router.project-osrm.org/route/v1/driving/${origin.lng},${origin.lat};${destination.lng},${destination.lat}?overview=full&geometries=polyline`,
+          `https://router.project-osrm.org/route/v1/driving/${currentOrigin.lng},${currentOrigin.lat};${currentDestination.lng},${currentDestination.lat}?overview=full&geometries=polyline`,
         );
         const data = await response.json();
 
@@ -61,6 +59,8 @@ export default function RouteDisplay({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [origin, destination, map]); // Removed onRouteFound to prevent effect loops if it changes identity
 
+  if (!origin) return null;
+
   if (!routePath) {
     return redMarkerIcon ? <Marker position={origin} icon={redMarkerIcon} /> : null;
   }
@@ -73,7 +73,7 @@ export default function RouteDisplay({
           severity === "high"
             ? "animated-polyline-high border"
             : "animated-polyline border",
-        color: getColor(severity),
+        color: getSeverityColor(severity),
         weight: severity === "high" ? 6 : 4,
         opacity: 1,
       }}

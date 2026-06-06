@@ -5,10 +5,12 @@ import { Share2, X, ThumbsUp, ThumbsDown } from "lucide-react";
 import { getWardMember, type WardMember } from "@/lib/ward-member";
 import { getMla, getMp } from "@/lib/mla-mp";
 import { useWasteReports } from "@/store/firebase";
-import { getColor } from "../utils";
+import { useMapSelection } from "@/store/mapStore";
+import { useUI } from "@/store/uiStore";
+import { getSeverityColor } from "@/components/utils";
 import MiniMap from "./MiniMap";
 
-import Button from "@/components/base/Button";
+import { Button } from "@/components/base";
 
 interface ReportDetailSheetProps {
   report: any;
@@ -16,12 +18,9 @@ interface ReportDetailSheetProps {
   user: any;
   onVote: (
     reportId: string,
-    type: "up" | "down",
-    currentUpvoters: string[],
-    currentDownvoters: string[]
+    type: "up" | "down"
   ) => Promise<void>;
   onClose: () => void;
-  onSelectAuthority?: (auth: any) => void;
 }
 
 export default function ReportDetailSheet({
@@ -30,13 +29,20 @@ export default function ReportDetailSheet({
   user,
   onVote,
   onClose,
-  onSelectAuthority,
 }: ReportDetailSheetProps) {
   const [ac, setAc] = useState(initialAc ?? null);
   const [wardMember, setWardMember] = useState<WardMember | null>(null);
   const wardMemberFetched = useRef(false);
+
+  const { setAuthoritySubject } = useMapSelection();
+  const { setActivePanel } = useUI();
+
+  const handleSelectAuthority = (auth: any) => {
+    setAuthoritySubject(auth);
+    setActivePanel("authority");
+  };
   const constituencyFetched = useRef(false);
-  const { editRecord } = useWasteReports();
+  const editRecord = useWasteReports((s) => s.editRecord);
 
   useEffect(() => {
     if (wardMemberFetched.current) return;
@@ -106,7 +112,7 @@ export default function ReportDetailSheet({
   const downvoters = report.downvoterIds || [];
   const hasUpvoted = user && upvoters.includes(user.uid);
   const hasDownvoted = user && downvoters.includes(user.uid);
-  const color = getColor(report.severity);
+  const color = getSeverityColor(report.severity);
 
   const shareUrl = `https://chavarundo.open2.in?id=${report.id}`;
   const reporterLine = report.userName && report.notes
@@ -255,14 +261,12 @@ export default function ReportDetailSheet({
                   {ac.lsgdLabel && (
                     <div
                       onClick={() => {
-                        if (onSelectAuthority) {
-                          onSelectAuthority({
-                            type: "lsgd",
-                            name: ac.lsgdLabel || "Local Body",
-                            idKey: report.secLsgCode || ac?.secLsgCode || report.lsgCode || ac?.lsgCode || report.lsgd || ac?.lsgd,
-                            label: "Local Self Government"
-                          });
-                        }
+                        handleSelectAuthority({
+                          type: "lsgd",
+                          name: ac.lsgdLabel || "Local Body",
+                          idKey: report.secLsgCode || ac?.secLsgCode || report.lsgCode || ac?.lsgCode || report.lsgd || ac?.lsgd,
+                          label: "Local Self Government"
+                        });
                       }}
                       className="text-[10px] text-orange-400/80 cursor-pointer hover:underline hover:text-orange-300 transition-colors"
                     >
@@ -272,19 +276,17 @@ export default function ReportDetailSheet({
                   {ac.acName && (
                     <div
                       onClick={() => {
-                        if (onSelectAuthority) {
-                          const acNo = report.acNo ?? ac?.acNo;
-                          const mla = getMla(acNo);
-                          onSelectAuthority({
-                            type: "mla",
-                            name: mla?.name ?? `MLA for ${ac.acName}`,
-                            party: mla?.party,
-                            phone: mla?.phone,
-                            email: mla?.email,
-                            idKey: acNo,
-                            label: `${ac.acName} Constituency`
-                          });
-                        }
+                        const acNo = report.acNo ?? ac?.acNo;
+                        const mla = getMla(acNo);
+                        handleSelectAuthority({
+                          type: "mla",
+                          name: mla?.name ?? `MLA for ${ac.acName}`,
+                          party: mla?.party,
+                          phone: mla?.phone,
+                          email: mla?.email,
+                          idKey: acNo,
+                          label: `${ac.acName} Constituency`
+                        });
                       }}
                       className="text-[10px] text-orange-400/60 cursor-pointer hover:underline hover:text-orange-300 transition-colors"
                     >
@@ -349,14 +351,12 @@ export default function ReportDetailSheet({
               {report.district && (
                 <div
                   onClick={() => {
-                    if (onSelectAuthority) {
-                      onSelectAuthority({
-                        type: "district",
-                        name: report.district,
-                        idKey: report.district,
-                        label: "District Administration"
-                      });
-                    }
+                    handleSelectAuthority({
+                      type: "district",
+                      name: report.district,
+                      idKey: report.district,
+                      label: "District Administration"
+                    });
                   }}
                   className="cursor-pointer group"
                 >
@@ -367,17 +367,15 @@ export default function ReportDetailSheet({
               {(report.wardNo != null || ac?.wardNo != null) && (
                 <div
                   onClick={() => {
-                    if (onSelectAuthority) {
-                      const wNo = report.wardNo ?? ac?.wardNo;
-                      const wName = report.wardName ?? ac?.wardName;
-                      onSelectAuthority({
-                        type: "ward",
-                        name: `${wName || "Ward"} (#${wNo})`,
-                        idKey: report.secLsgCode || ac?.secLsgCode || report.lsgCode || ac?.lsgCode || report.lsgd || ac?.lsgd,
-                        subIdKey: wNo,
-                        label: `${ac?.lsgdLabel || report.lsgdLabel || "Local Body"}`
-                      });
-                    }
+                    const wNo = report.wardNo ?? ac?.wardNo;
+                    const wName = report.wardName ?? ac?.wardName;
+                    handleSelectAuthority({
+                      type: "ward",
+                      name: `${wName || "Ward"} (#${wNo})`,
+                      idKey: report.secLsgCode || ac?.secLsgCode || report.lsgCode || ac?.lsgCode || report.lsgd || ac?.lsgd,
+                      subIdKey: wNo,
+                      label: `${ac?.lsgdLabel || report.lsgdLabel || "Local Body"}`
+                    });
                   }}
                   className="cursor-pointer group"
                 >
@@ -441,17 +439,15 @@ export default function ReportDetailSheet({
                         party={wardMember.party}
                         phone={wardMember.phone}
                         onClick={() => {
-                          if (onSelectAuthority) {
-                            onSelectAuthority({
-                              type: "ward",
-                              name: wardMember.memberName ?? "Ward Member",
-                              party: wardMember.party,
-                              phone: wardMember.phone,
-                              idKey: wardMember.lsgiCode || report.secLsgCode || ac?.secLsgCode,
-                              subIdKey: report.wardNo ?? ac?.wardNo,
-                              label: `${wardMember.lsgiName || ac?.lsgdLabel || "Local Body"} - Ward ${report.wardNo ?? ac?.wardNo}`
-                            });
-                          }
+                          handleSelectAuthority({
+                            type: "ward",
+                            name: wardMember.memberName ?? "Ward Member",
+                            party: wardMember.party,
+                            phone: wardMember.phone,
+                            idKey: wardMember.lsgiCode || report.secLsgCode || ac?.secLsgCode,
+                            subIdKey: report.wardNo ?? ac?.wardNo,
+                            label: `${wardMember.lsgiName || ac?.lsgdLabel || "Local Body"} - Ward ${report.wardNo ?? ac?.wardNo}`
+                          });
                         }}
                       />
                     )}
@@ -462,17 +458,15 @@ export default function ReportDetailSheet({
                         phone={mla.phone}
                         email={mla.email}
                         onClick={() => {
-                          if (onSelectAuthority) {
-                            onSelectAuthority({
-                              type: "mla",
-                              name: mla.name,
-                              party: mla.party,
-                              phone: mla.phone,
-                              email: mla.email,
-                              idKey: acNo,
-                              label: `${ac?.acName || "Unknown"} Constituency`
-                            });
-                          }
+                          handleSelectAuthority({
+                            type: "mla",
+                            name: mla.name,
+                            party: mla.party,
+                            phone: mla.phone,
+                            email: mla.email,
+                            idKey: acNo,
+                            label: `${ac?.acName || "Unknown"} Constituency`
+                          });
                         }}
                       />
                     )}
@@ -483,17 +477,15 @@ export default function ReportDetailSheet({
                         phone={mp.phone}
                         email={mp.email}
                         onClick={() => {
-                          if (onSelectAuthority) {
-                            onSelectAuthority({
-                              type: "mp",
-                              name: mp.name,
-                              party: mp.party,
-                              phone: mp.phone,
-                              email: mp.email,
-                              idKey: pcName,
-                              label: `${pcName || "Unknown"} Parliamentary Constituency`
-                            });
-                          }
+                          handleSelectAuthority({
+                            type: "mp",
+                            name: mp.name,
+                            party: mp.party,
+                            phone: mp.phone,
+                            email: mp.email,
+                            idKey: pcName,
+                            label: `${pcName || "Unknown"} Parliamentary Constituency`
+                          });
                         }}
                       />
                     )}
@@ -527,7 +519,7 @@ export default function ReportDetailSheet({
             {/* Vote buttons */}
             <div className="flex gap-2 pt-1 border-t border-blue-500/20 dark:border-cyan-500/20">
               <Button
-                onClick={(e) => { e.stopPropagation(); onVote(report.id, "up", upvoters, downvoters); }}
+                onClick={(e) => { e.stopPropagation(); onVote(report.id, "up"); }}
                 variant={hasUpvoted ? "cyan" : "ghost"}
                 size="xs"
                 className={`flex-1 border ${hasUpvoted ? "bg-blue-100/50 dark:bg-cyan-900/50 text-blue-600 dark:text-cyan-400 border-blue-400 dark:border-cyan-400" : "border-blue-500/30 dark:border-cyan-500/30 text-blue-700/50 dark:text-cyan-500/50 hover:bg-blue-100/30 dark:bg-cyan-900/30 hover:text-blue-600 dark:text-cyan-400"}`}
@@ -536,7 +528,7 @@ export default function ReportDetailSheet({
                 Confirm ({upvoters.length})
               </Button>
               <Button
-                onClick={(e) => { e.stopPropagation(); onVote(report.id, "down", upvoters, downvoters); }}
+                onClick={(e) => { e.stopPropagation(); onVote(report.id, "down"); }}
                 variant={hasDownvoted ? "red" : "ghost"}
                 size="xs"
                 className={`flex-1 border ${hasDownvoted ? "border-red-500 bg-red-900/50 text-red-500" : "border-blue-500/30 dark:border-cyan-500/30 text-blue-700/50 dark:text-cyan-500/50 hover:bg-red-900/30 hover:text-red-500"}`}

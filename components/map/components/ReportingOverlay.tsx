@@ -3,46 +3,18 @@ import { motion, AnimatePresence } from "motion/react";
 import L from "leaflet";
 import { ChevronDown, Heart, ExternalLink, Bug, LogOut } from "lucide-react";
 
-import { useAuthStore } from "@/lib/store";
-import { logout } from "@/lib/firebase";
+import { useUser } from "@/store/userStore";
+import { useWasteReports } from "@/store/firebase";
+import { useReportWizard } from "@/store/reportFormStore";
 
-import Card from "@/components/base/Card";
-import Button from "@/components/base/Button";
+import { Card, Button } from "@/components/base";
 
-interface ReportingOverlayProps {
-  reportsCount: number;
-  reportingMode: boolean;
-  setReportingMode: (val: boolean) => void;
-  origin: any;
-  destination: any;
-  pointsConfirmed: boolean;
-  onConfirmPoints: () => void;
-  currentPathEncoded: string | null;
-  currentRouteDistance: number | null;
-  routeError: string | null;
-  severity: "low" | "medium" | "high";
-  setSeverity: (s: "low" | "medium" | "high") => void;
-  onCancel: () => void;
-  setReportStep: (step: number) => void;
-}
+export default function ReportingOverlay() {
+  const reportsCount = useWasteReports((s) => s.reports.length);
+  const { activeReportForm } = useReportWizard();
+  const reportingMode = activeReportForm !== null;
 
-export default function ReportingOverlay({
-  reportsCount,
-  reportingMode,
-  setReportingMode,
-  origin,
-  destination,
-  pointsConfirmed,
-  onConfirmPoints,
-  currentPathEncoded,
-  currentRouteDistance,
-  routeError,
-  severity,
-  setSeverity,
-  onCancel,
-  setReportStep,
-}: ReportingOverlayProps) {
-  const user = useAuthStore((state) => state.user);
+  const { user, logout } = useUser();
   const [isExpanded, setIsExpanded] = useState(false);
   const [isDesktopHovered, setIsDesktopHovered] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
