@@ -1,0 +1,51 @@
+<svg class="w-full h-full" viewBox="0 0 400 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="purpleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#a855f7" />
+      <stop offset="100%" stop-color="#6366f1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Central sharing node -->
+  <circle cx="200" cy="90" r="28" fill="rgba(168, 85, 247, 0.08)" stroke="#a855f7" stroke-width="1.5" />
+  <path d="M 190 95 L 200 85 L 210 95" stroke="#a855f7" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M 200 85 L 200 105" stroke="#a855f7" stroke-width="2.5" stroke-linecap="round" />
+  
+  <!-- Dotted connection lines to other citizen nodes -->
+  <line x1="200" y1="90" x2="110" y2="50" stroke="#a855f7" stroke-width="1.5" stroke-dasharray="3 3" />
+  <line x1="200" y1="90" x2="290" y2="50" stroke="#a855f7" stroke-width="1.5" stroke-dasharray="3 3" />
+  <line x1="200" y1="90" x2="130" y2="135" stroke="#a855f7" stroke-width="1.5" stroke-dasharray="3 3" />
+  <line x1="200" y1="90" x2="270" y2="135" stroke="#a855f7" stroke-width="1.5" stroke-dasharray="3 3" />
+
+  <!-- Citizen Node 1 (Top Left) -->
+  <circle cx="110" cy="50" r="16" fill="#121212" stroke="#6366f1" stroke-width="1.5" />
+  <circle cx="110" cy="46" r="4" fill="#6366f1" />
+  <path d="M 102 58 C 102 54 105 52 110 52 C 115 52 118 54 118 58 Z" fill="#6366f1" />
+
+  <!-- Citizen Node 2 (Top Right) -->
+  <circle cx="290" cy="50" r="16" fill="#121212" stroke="#22c55e" stroke-width="1.5" />
+  <circle cx="290" cy="46" r="4" fill="#22c55e" />
+  <path d="M 282 58 C 282 54 285 52 290 52 C 295 52 298 54 298 58 Z" fill="#22c55e" />
+
+  <!-- Citizen Node 3 (Bottom Left) -->
+  <circle cx="130" cy="135" r="16" fill="#121212" stroke="#ff9900" stroke-width="1.5" />
+  <circle cx="130" cy="131" r="4" fill="#ff9900" />
+  <path d="M 122 143 C 122 139 125 137 130 137 C 135 137 138 139 138 143 Z" fill="#ff9900" />
+
+  <!-- Citizen Node 4 (Bottom Right) -->
+  <circle cx="270" cy="135" r="16" fill="#121212" stroke="#00f0ff" stroke-width="1.5" />
+  <circle cx="270" cy="131" r="4" fill="#00f0ff" />
+  <path d="M 262 143 C 262 139 265 137 270 137 C 275 137 278 139 278 143 Z" fill="#00f0ff" />
+  
+  <!-- Animated hearts / upvotes rising -->
+  <g opacity="0.8">
+    <path d="M 155 75 Q 155 70 160 70 Q 165 70 165 75 T 155 85 T 145 75 Z" fill="#ff003c" transform="scale(0.8) translate(40, 20)">
+      <animate attributeName="opacity" values="0;1;0" dur="2s" repeatCount="indefinite" />
+      <animateTransform attributeName="transform" type="translate" values="140,75; 135,55" dur="2s" repeatCount="indefinite" />
+    </path>
+    <path d="M 245 75 Q 245 70 250 70 Q 255 70 255 75 T 245 85 T 235 75 Z" fill="#ff003c" transform="scale(0.8) translate(40, 20)">
+      <animate attributeName="opacity" values="0;1;0" dur="2.5s" repeatCount="indefinite" />
+      <animateTransform attributeName="transform" type="translate" values="240,75; 245,50" dur="2.5s" repeatCount="indefinite" />
+    </path>
+  </g>
+</svg>

@@ -15,3 +15,6 @@ export type { SheetProps } from "./Sheet";
 
 export { default as Textarea } from "./Textarea";
 export type { TextareaProps } from "./Textarea";
+
+export { default as Modal } from "./Modal";
+export type { ModalProps } from "./Modal";

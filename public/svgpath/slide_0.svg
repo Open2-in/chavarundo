@@ -1,0 +1,54 @@
+<svg class="w-full h-full" viewBox="0 0 400 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="keralaGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00f0ff" stop-opacity="0.2" />
+      <stop offset="100%" stop-color="#00f0ff" stop-opacity="0.05" />
+    </linearGradient>
+    <linearGradient id="neonGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00f0ff" />
+      <stop offset="50%" stop-color="#ff9900" />
+      <stop offset="100%" stop-color="#ff003c" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Abstract Grid Map -->
+  <g opacity="0.3">
+    <path d="M 20 90 L 380 90" stroke="#00f0ff" stroke-width="1" stroke-dasharray="4 4" />
+    <path d="M 200 10 L 200 170" stroke="#00f0ff" stroke-width="1" stroke-dasharray="4 4" />
+    <circle cx="200" cy="90" r="70" stroke="#00f0ff" stroke-width="1" stroke-dasharray="2 4" />
+    <circle cx="200" cy="90" r="40" stroke="#00f0ff" stroke-width="0.5" />
+  </g>
+
+  <!-- Abstract Kerala Silhouette Line -->
+  <path 
+    d="M 170 30 Q 185 50 180 70 T 205 110 T 220 150" 
+    stroke="url(#neonGrad)" 
+    stroke-width="4" 
+    stroke-linecap="round" 
+    class="animate-pulse"
+  />
+
+  <!-- Map Pins -->
+  <g>
+    <!-- Pin 1 (High severity - Red) -->
+    <circle cx="180" cy="60" r="10" fill="#ff003c" fill-opacity="0.2" />
+    <circle cx="180" cy="60" r="4" fill="#ff003c" />
+    <line x1="180" y1="60" x2="180" y2="70" stroke="#ff003c" stroke-width="1.5" />
+    
+    <!-- Pin 2 (Medium severity - Orange) -->
+    <circle cx="200" cy="100" r="10" fill="#ff9900" fill-opacity="0.2" />
+    <circle cx="200" cy="100" r="4" fill="#ff9900" />
+    <line x1="200" y1="100" x2="200" y2="110" stroke="#ff9900" stroke-width="1.5" />
+
+    <!-- Pin 3 (Low severity - Cyan) -->
+    <circle cx="215" cy="130" r="10" fill="#00f0ff" fill-opacity="0.2" />
+    <circle cx="215" cy="130" r="4" fill="#00f0ff" />
+    <line x1="215" y1="130" x2="215" y2="140" stroke="#00f0ff" stroke-width="1.5" />
+  </g>
+
+  <!-- Glowing Ripple around central pin -->
+  <circle cx="200" cy="100" r="22" stroke="#ff9900" stroke-width="1" opacity="0.8" class="scale-anim">
+    <animate attributeName="r" values="8;25;8" dur="3s" repeatCount="indefinite" />
+    <animate attributeName="opacity" values="1;0;1" dur="3s" repeatCount="indefinite" />
+  </circle>
+</svg>

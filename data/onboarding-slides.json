@@ -1,0 +1,38 @@
+[
+  {
+    "title": "Welcome to Chavarundo",
+    "subtitle": "Kerala's Public Waste Tracker",
+    "description": "Chavarundo (ചവറുണ്ടോ — \"Is there waste?\") is a community-driven map to report, track, and clear public garbage dumps in Kerala. Together, let's clean our neighborhoods and hold authorities accountable.",
+    "illustrationUrl": "/svgpath/slide_0.svg"
+  },
+  {
+    "title": "Step 1: Snap a Photo",
+    "subtitle": "Capture the garbage spot",
+    "description": "Tap the Report (+) button to take a photo of the waste. Just make sure your phone's location (GPS) is turned on so the app can automatically find where the photo was taken.",
+    "illustrationUrl": "/svgpath/slide_1.svg"
+  },
+  {
+    "title": "Step 2: Check the Map",
+    "subtitle": "Pinpoint the exact location",
+    "description": "Double-check the marker on the map. You can drag the pin slightly to get it exactly on the right spot. For accuracy, the pin must stay close to where the photo was captured.",
+    "illustrationUrl": "/svgpath/slide_2.svg"
+  },
+  {
+    "title": "Step 3: AI Audit & Cleanup",
+    "subtitle": "We find the right authority",
+    "description": "Our system automatically checks the photo, confirms it is near a public road, and alerts the correct local authority (Ward Member, Panchayat, PWD, or NHAI) so they can take action.",
+    "illustrationUrl": "/svgpath/slide_3.svg"
+  },
+  {
+    "title": "Join the Mission",
+    "subtitle": "Share and contribute",
+    "description": "You can make a difference! Share reports with neighbors to raise awareness, or upvote other findings near you to help local authorities notice them faster.",
+    "illustrationUrl": "/svgpath/slide_4.svg"
+  },
+  {
+    "title": "Restore Our Pride",
+    "subtitle": "Let's clean Kerala!",
+    "description": "Let's work together to clear public garbage and make our beautiful home clean again. Join us in restoring Kerala to its true title: God's Own Country!",
+    "illustrationUrl": "/svgpath/slide_5.svg"
+  }
+]
