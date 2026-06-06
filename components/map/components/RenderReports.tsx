@@ -14,6 +14,10 @@ import { useWasteReports } from "@/store/firebase";
 import { getColor, createDotIcon, getRoadAuthority, clampReporterName, saveReporterName } from "../utils";
 import ReportDetailSheet from "./ReportDetailSheet";
 
+import Button from "@/components/base/Button";
+import Input from "@/components/base/Input";
+import Textarea from "@/components/base/Textarea";
+
 interface RenderReportsProps {
   reports: any[];
   detailReportId: string | null;
@@ -315,42 +319,48 @@ export default function RenderReports({
                 </div>
 
                 <div className="flex gap-1">
-                  <button
+                  <Button
                     onClick={(e) => {
                       e.stopPropagation();
                       handleVote(report.id, "up", upvoters, downvoters);
                     }}
-                    className={`flex items-center gap-1 p-1 rounded-sm border transition-all text-[10px] font-bold ${hasUpvoted ? "border-blue-600 dark:border-cyan-400 bg-blue-100 dark:bg-cyan-900/50 text-blue-700 dark:text-cyan-400" : "border-blue-200 dark:border-transparent text-blue-500 dark:text-cyan-500/50 hover:bg-blue-100 dark:hover:bg-blue-100/30 dark:bg-cyan-900/30 hover:text-blue-700 dark:hover:text-cyan-400"}`}
+                    variant={hasUpvoted ? "cyan" : "ghost"}
+                    size="xs"
+                    className={`p-1 border ${hasUpvoted ? "border-blue-600 dark:border-cyan-400 bg-blue-100 dark:bg-cyan-900/50 text-blue-700 dark:text-cyan-400" : "border-blue-200 dark:border-transparent text-blue-500 dark:text-cyan-500/50 hover:bg-blue-100 dark:hover:bg-blue-100/30 dark:bg-cyan-900/30 hover:text-blue-700 dark:hover:text-cyan-400"}`}
                     title="Upvote"
                   >
                     <ThumbsUp
                       className={`w-3 h-3 ${hasUpvoted ? "fill-blue-700 dark:fill-cyan-400" : ""}`}
                     />
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     onClick={(e) => {
                       e.stopPropagation();
                       handleVote(report.id, "down", upvoters, downvoters);
                     }}
-                    className={`flex items-center gap-1 p-1 rounded-sm border transition-all text-[10px] font-bold ${hasDownvoted ? "border-red-500 bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-500" : "border-blue-200 dark:border-transparent text-blue-500 dark:text-cyan-500/50 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-500"}`}
+                    variant={hasDownvoted ? "red" : "ghost"}
+                    size="xs"
+                    className={`p-1 border ${hasDownvoted ? "border-red-500 bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-500" : "border-blue-200 dark:border-transparent text-blue-500 dark:text-cyan-500/50 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-500"}`}
                     title="Downvote"
                   >
                     <ThumbsDown
                       className={`w-3 h-3 ${hasDownvoted ? "fill-red-500" : ""}`}
                     />
-                  </button>
+                  </Button>
                 </div>
               </div>
 
-              <button
+              <Button
                 onClick={(e) => {
                   e.stopPropagation();
                   setDetailReportId(report.id);
                 }}
-                className="w-full mt-1 py-1.5 text-[9px] font-bold uppercase tracking-widest text-blue-700 dark:text-cyan-300 bg-blue-100 dark:bg-cyan-900/40 hover:bg-blue-200 dark:hover:bg-blue-50/60 dark:bg-cyan-800/60 border-t border-blue-300 dark:border-cyan-400/40 hover:border-blue-400 dark:hover:border-blue-400 dark:border-cyan-400 shadow-[0_0_6px_rgba(0,100,255,0.1)] dark:shadow-[0_0_6px_rgba(0,255,255,0.15)] hover:shadow-[0_0_10px_rgba(0,100,255,0.2)] dark:hover:shadow-[0_0_10px_rgba(0,255,255,0.3)] transition-all"
+                variant="outline"
+                size="xs"
+                className="w-full mt-1 py-1.5"
               >
                 View Details ↓
-              </button>
+              </Button>
             </>
           )}
 
@@ -361,41 +371,41 @@ export default function RenderReports({
                   Delete Report?
                 </span>
                 <div className="flex gap-2 w-full">
-                  <button
+                  <Button
                     onClick={(e) => handleDelete(report.id, e)}
-                    className="flex-1 bg-red-500 hover:bg-red-400 text-black px-2 py-1 uppercase text-[10px] font-bold transition-colors"
+                    variant="red"
+                    size="xs"
+                    className="flex-1"
                   >
                     Confirm
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     onClick={(e) => {
                       e.stopPropagation();
                       setDeletingId(null);
                     }}
-                    className="flex-1 bg-blue-100/50 dark:bg-cyan-900/50 hover:bg-blue-50/50 dark:bg-cyan-800/50 text-blue-600 dark:text-cyan-400 border border-blue-500/50 dark:border-cyan-500/50 px-2 py-1 uppercase text-[10px] font-bold transition-colors"
+                    variant="ghost"
+                    size="xs"
+                    className="flex-1 border border-blue-500/50 dark:border-cyan-500/50"
                   >
                     Cancel
-                  </button>
+                  </Button>
                 </div>
               </div>
             ) : editingId === report.id ? (
-              <div className="mt-2 flex flex-col items-start gap-2 border-t pt-2 border-blue-500/30 dark:border-cyan-500/30">
-                <div className="w-full">
-                  <label className="text-[10px] uppercase font-bold tracking-widest text-blue-700/70 dark:text-cyan-500/70 border-l-2 border-blue-500 dark:border-cyan-500 pl-2">
-                    Reported As
-                  </label>
-                  <input
-                    type="text"
-                    value={editReporterName}
-                    onChange={(e) =>
-                      setEditReporterName(clampReporterName(e.target.value))
-                    }
-                    placeholder="Anonymous"
-                    className="w-full bg-blue-100/20 dark:bg-cyan-900/20 text-blue-600 dark:text-cyan-400 border border-blue-500/50 dark:border-cyan-500/50 p-1 mt-1 text-[10px] outline-none focus:border-blue-400 dark:border-cyan-400 focus:shadow-[0_0_10px_rgba(0,255,255,0.3)] transition-all placeholder:text-blue-400/50 dark:placeholder:text-cyan-500/30"
-                  />
-                </div>
-                <div className="w-full">
-                  <label className="text-[10px] uppercase font-bold tracking-widest text-blue-700/70 dark:text-cyan-500/70 border-l-2 border-blue-500 dark:border-cyan-500 pl-2">
+              <div className="mt-2 flex flex-col items-start gap-2 border-t pt-2 border-blue-500/30 dark:border-cyan-500/30 w-full">
+                <Input
+                  label="Reported As"
+                  type="text"
+                  value={editReporterName}
+                  onChange={(e) =>
+                    setEditReporterName(clampReporterName(e.target.value))
+                  }
+                  placeholder="Anonymous"
+                  className="p-1.5 mt-0.5 rounded-lg w-full"
+                />
+                <div className="w-full font-mono flex flex-col gap-1 text-left">
+                  <label className="text-[9px] uppercase font-bold tracking-widest text-cyan-500/60 pl-1">
                     Severity
                   </label>
                   <select
@@ -405,26 +415,22 @@ export default function RenderReports({
                         e.target.value as "low" | "medium" | "high",
                       )
                     }
-                    className="w-full bg-blue-100/20 dark:bg-cyan-900/20 text-blue-600 dark:text-cyan-400 border border-blue-500/50 dark:border-cyan-500/50 p-1 mt-1 text-[10px] uppercase outline-none focus:border-blue-400 dark:border-cyan-400 focus:shadow-[0_0_10px_rgba(0,255,255,0.3)] transition-all"
+                    className="w-full bg-neutral-100 dark:bg-neutral-900 text-neutral-800 dark:text-neutral-200 border border-neutral-200 dark:border-neutral-800 p-2 rounded-xl outline-none focus:border-cyan-500 transition-colors text-[10px] uppercase"
                   >
                     <option value="low">Low</option>
                     <option value="medium">Medium</option>
                     <option value="high">High</option>
                   </select>
                 </div>
-                <div className="w-full">
-                  <label className="text-[10px] uppercase font-bold tracking-widest text-blue-700/70 dark:text-cyan-500/70 border-l-2 border-blue-500 dark:border-cyan-500 pl-2">
-                    Notes
-                  </label>
-                  <textarea
-                    value={editNotes}
-                    onChange={(e) => setEditNotes(e.target.value)}
-                    className="w-full bg-blue-100/20 dark:bg-cyan-900/20 text-blue-600 dark:text-cyan-400 border border-blue-500/50 dark:border-cyan-500/50 p-1 mt-1 text-[10px] uppercase outline-none min-h-[40px] resize-none focus:border-blue-400 dark:border-cyan-400 focus:shadow-[0_0_10px_rgba(0,255,255,0.3)] transition-all"
-                    placeholder="Update notes..."
-                  />
-                </div>
-                <div className="w-full">
-                  <label className="text-[10px] uppercase font-bold tracking-widest text-blue-700/70 dark:text-cyan-500/70 border-l-2 border-blue-500 dark:border-cyan-500 pl-2">
+                <Textarea
+                  label="Notes"
+                  value={editNotes}
+                  onChange={(e) => setEditNotes(e.target.value)}
+                  className="p-2 mt-0.5 min-h-[40px] rounded-xl w-full"
+                  placeholder="Update notes..."
+                />
+                <div className="w-full flex flex-col gap-1 text-left font-mono">
+                  <label className="text-[9px] uppercase font-bold tracking-widest text-cyan-500/60 pl-1">
                     Image
                   </label>
                   <input
@@ -435,11 +441,11 @@ export default function RenderReports({
                     onChange={handleEditImageChange}
                   />
                   {editImageUrl ? (
-                    <div className="relative mt-1 border border-blue-500/50 dark:border-cyan-500/50 p-1 w-full max-h-20 overflow-hidden flex justify-center bg-white/50 dark:bg-black/50">
+                    <div className="relative mt-1 border border-neutral-200 dark:border-neutral-800 p-1 w-full max-h-20 overflow-hidden flex justify-center bg-neutral-100 dark:bg-neutral-900 rounded-xl">
                       <img
                         src={editImageUrl}
                         alt="edit preview"
-                        className="max-h-16 object-contain"
+                        className="max-h-16 object-contain rounded-lg"
                       />
                       <button
                         onClick={(e) => {
@@ -447,48 +453,54 @@ export default function RenderReports({
                           e.preventDefault();
                           setEditImageUrl(null);
                         }}
-                        className="absolute top-1 right-1 bg-white/80 dark:bg-black/80 p-0.5 border border-blue-500/50 dark:border-cyan-500/50 text-blue-600 dark:text-cyan-400 hover:text-red-500"
+                        className="absolute top-1 right-1 bg-white/80 dark:bg-black/80 p-0.5 border border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-400 hover:text-red-500 rounded-md"
                         type="button"
                       >
-                        <X className="w-3 h-3" />
+                        <X className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   ) : (
-                    <button
+                    <Button
                       onClick={(e) => {
                         e.stopPropagation();
                         e.preventDefault();
                         editFileInputRef.current?.click();
                       }}
-                      className="mt-1 w-full border border-blue-500/50 dark:border-cyan-500/50 border-dashed text-blue-700 dark:text-cyan-500 p-1 text-[10px] hover:bg-blue-100/30 dark:bg-cyan-900/30"
-                      type="button"
+                      variant="outline"
+                      size="xs"
+                      className="mt-1 w-full border-dashed"
                     >
-                      <Camera className="w-3 h-3 mx-auto" />
-                    </button>
+                      <Camera className="w-3.5 h-3.5" />
+                    </Button>
                   )}
                 </div>
-                <div className="flex gap-2 w-full mt-1">
-                  <button
+                <div className="flex gap-2 w-full mt-2">
+                  <Button
                     onClick={(e) => handleSaveEdit(report.id, e)}
                     disabled={isSavingEdit}
-                    className="flex-1 bg-blue-600 dark:bg-cyan-500 hover:bg-blue-700 dark:hover:bg-cyan-400 text-white dark:text-black px-2 py-1 uppercase text-[10px] font-bold transition-colors disabled:opacity-50"
+                    loading={isSavingEdit}
+                    variant="cyan"
+                    size="xs"
+                    className="flex-1"
                   >
                     Save
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     onClick={(e) => {
                       e.stopPropagation();
                       setEditingId(null);
                     }}
-                    className="flex-1 bg-blue-100/50 dark:bg-cyan-900/50 hover:bg-blue-50/50 dark:bg-cyan-800/50 text-blue-600 dark:text-cyan-400 border border-blue-500/50 dark:border-cyan-500/50 px-2 py-1 uppercase text-[10px] font-bold transition-colors"
+                    variant="ghost"
+                    size="xs"
+                    className="flex-1 border border-neutral-300 dark:border-neutral-800"
                   >
                     Cancel
-                  </button>
+                  </Button>
                 </div>
               </div>
             ) : (
-              <div className="flex gap-2 mt-2">
-                <button
+              <div className="flex gap-2 mt-2 w-full">
+                <Button
                   onClick={(e) => {
                     e.stopPropagation();
                     setEditNotes(report.notes || "");
@@ -497,27 +509,29 @@ export default function RenderReports({
                     setEditReporterName(report.userName || "");
                     setEditingId(report.id);
                   }}
-                  className="flex-1 flex items-center justify-center gap-1 bg-blue-100 dark:bg-cyan-500/10 hover:bg-blue-200 dark:hover:bg-cyan-500/20 text-blue-700 dark:text-cyan-400 border border-blue-400 dark:border-cyan-500/50 px-2 py-1.5 text-[10px] uppercase tracking-widest font-bold transition-colors dark:shadow-[0_0_10px_rgba(0,255,255,0.1)]"
+                  variant="outline"
+                  size="xs"
+                  className="flex-1"
                 >
                   Edit
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={(e) => {
                     e.stopPropagation();
                     setDeletingId(report.id);
                   }}
-                  className="flex-1 flex items-center justify-center gap-1 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/50 px-2 py-1.5 text-[10px] uppercase tracking-widest font-bold transition-colors shadow-[0_0_10px_rgba(255,0,60,0.1)]"
+                  variant="red"
+                  size="xs"
+                  className="flex-1 bg-red-500/10 text-red-500 border border-red-500/50 hover:bg-red-500/20"
                 >
-                  <Trash2 className="w-3 h-3" /> Delete
-                </button>
+                  <Trash2 className="w-3.5 h-3.5" /> Delete
+                </Button>
               </div>
             ))}
         </div>
       </Popup>
     );
-  };
-
-  return (
+  }; return (
     <>
       <MarkerClusterGroup
         chunkedLoading

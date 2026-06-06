@@ -4,6 +4,9 @@ import L from "leaflet";
 import { Search, X } from "lucide-react";
 import { fetchWithAppCheck } from "@/lib/appcheck-fetch";
 
+import Card from "@/components/base/Card";
+import Button from "@/components/base/Button";
+
 interface MapSearchProps {
   isOpen: boolean;
   onClose: () => void;
@@ -134,7 +137,7 @@ export default function MapSearch({ isOpen, onClose }: MapSearchProps) {
         style={{ top: "max(5rem, calc(4rem + var(--sat)))" }}
       >
         {/* Input row */}
-        <div className="flex items-center bg-white/80 dark:bg-black/80 backdrop-blur-xl border border-blue-400/60 dark:border-cyan-500/60 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.18)] dark:shadow-[0_8px_32px_rgba(0,255,255,0.08)] px-1 pr-1">
+        <Card variant="default" padding="none" className="flex-row items-center rounded-2xl px-1 pr-1 border-blue-400/60 dark:border-cyan-500/60 shadow-[0_8px_32px_rgba(0,0,0,0.18)] dark:shadow-[0_8px_32px_rgba(0,255,255,0.08)]">
           <Search className="w-4 h-4 text-blue-500/70 dark:text-cyan-500/60 ml-3 shrink-0" />
           <input
             ref={inputRef}
@@ -148,22 +151,23 @@ export default function MapSearch({ isOpen, onClose }: MapSearchProps) {
           {isSearching && (
             <span className="w-3.5 h-3.5 border-2 border-blue-400 dark:border-cyan-400 border-t-transparent rounded-full animate-spin mr-2 shrink-0" />
           )}
-          <button
+          <Button
             onClick={onClose}
-            className="p-2 rounded-xl text-blue-400/70 dark:text-cyan-500/50 hover:text-blue-700 dark:hover:text-cyan-300 hover:bg-blue-50 dark:hover:bg-cyan-900/30 transition-all shrink-0"
+            variant="ghost"
+            className="p-2 text-blue-400/70 dark:text-cyan-500/50 hover:text-blue-700 dark:hover:text-cyan-300 hover:bg-blue-50 dark:hover:bg-cyan-900/30"
           >
             <X className="w-4 h-4" />
-          </button>
-        </div>
+          </Button>
+        </Card>
 
         {/* Results */}
         {showResults && results.length > 0 && (
-          <div className="mt-1.5 bg-white/80 dark:bg-black/80 backdrop-blur-xl border border-blue-300/50 dark:border-cyan-500/30 rounded-2xl shadow-[0_8px_24px_rgba(0,0,0,0.12)] overflow-hidden max-h-[min(15rem,45vh)] overflow-y-auto">
+          <Card variant="default" padding="none" className="mt-1.5 rounded-2xl shadow-[0_8px_24px_rgba(0,0,0,0.12)] overflow-hidden max-h-[min(15rem,45vh)] overflow-y-auto">
             {results.map((r, i) => (
               <button
                 key={i}
                 onClick={() => goToPlace(r)}
-                className="w-full text-left px-4 py-2.5 hover:bg-blue-50/80 dark:hover:bg-cyan-900/40 text-blue-700 dark:text-cyan-300 flex flex-col border-b border-blue-100/60 dark:border-cyan-500/10 last:border-0 transition-colors"
+                className="w-full text-left px-4 py-2.5 hover:bg-blue-50/80 dark:hover:bg-cyan-900/40 text-blue-700 dark:text-cyan-300 flex flex-col border-b border-blue-100/60 dark:border-cyan-500/10 last:border-0 transition-colors cursor-pointer"
               >
                 <span className="font-bold text-xs truncate w-full block">
                   {r.name || r.display_name?.split(",")[0] || "Unknown"}
@@ -173,13 +177,13 @@ export default function MapSearch({ isOpen, onClose }: MapSearchProps) {
                 </span>
               </button>
             ))}
-          </div>
+          </Card>
         )}
 
         {showResults && query.trim() && !isSearching && results.length === 0 && (
-          <div className="mt-1.5 bg-white/80 dark:bg-black/80 backdrop-blur-xl border border-blue-300/50 dark:border-cyan-500/30 rounded-2xl px-4 py-3 text-[11px] text-blue-500/70 dark:text-cyan-500/50 uppercase tracking-widest text-center">
+          <Card variant="default" className="mt-1.5 rounded-2xl px-4 py-3 text-[11px] text-blue-500/70 dark:text-cyan-500/50 uppercase tracking-widest text-center">
             No results found
-          </div>
+          </Card>
         )}
       </div>
     </>

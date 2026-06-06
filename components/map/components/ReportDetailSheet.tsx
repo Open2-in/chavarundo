@@ -1,13 +1,14 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, useMotionValue, animate } from "motion/react";
 import { Share2, X, ThumbsUp, ThumbsDown } from "lucide-react";
-import { decode } from "@googlemaps/polyline-codec";
 
 import { getWardMember, type WardMember } from "@/lib/ward-member";
 import { getMla, getMp } from "@/lib/mla-mp";
 import { useWasteReports } from "@/store/firebase";
 import { getColor } from "../utils";
 import MiniMap from "./MiniMap";
+
+import Button from "@/components/base/Button";
 
 interface ReportDetailSheetProps {
   report: any;
@@ -294,10 +295,10 @@ export default function ReportDetailSheet({
               )}
             </div>
             <div className="flex items-center gap-3 ml-3 mt-1 shrink-0">
-              <button onClick={handleShare} className="text-blue-700/50 dark:text-cyan-500/50 hover:text-blue-600 dark:text-cyan-400">
+              <button onClick={handleShare} className="text-blue-700/50 dark:text-cyan-500/50 hover:text-blue-600 dark:text-cyan-400 cursor-pointer">
                 <Share2 className="w-5 h-5" />
               </button>
-              <button onClick={onClose} className="text-blue-700/50 dark:text-cyan-500/50 hover:text-blue-600 dark:text-cyan-400">
+              <button onClick={onClose} className="text-blue-700/50 dark:text-cyan-500/50 hover:text-blue-600 dark:text-cyan-400 cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -516,7 +517,7 @@ export default function ReportDetailSheet({
               <span className="font-bold text-red-400">Dispute</span> only if this spot is clean or the report is inaccurate.{" "}
               <button
                 onClick={(e) => { e.stopPropagation(); handleShare(); }}
-                className="font-bold text-blue-500 dark:text-cyan-300 underline underline-offset-2 hover:text-blue-400 dark:text-cyan-200 transition-colors"
+                className="font-bold text-blue-500 dark:text-cyan-300 underline underline-offset-2 hover:text-blue-400 dark:text-cyan-200 transition-colors cursor-pointer"
               >
                 Share
               </button>{" "}
@@ -525,20 +526,24 @@ export default function ReportDetailSheet({
 
             {/* Vote buttons */}
             <div className="flex gap-2 pt-1 border-t border-blue-500/20 dark:border-cyan-500/20">
-              <button
+              <Button
                 onClick={(e) => { e.stopPropagation(); onVote(report.id, "up", upvoters, downvoters); }}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-[10px] font-bold uppercase border transition-all ${hasUpvoted ? "border-blue-400 dark:border-cyan-400 bg-blue-100/50 dark:bg-cyan-900/50 text-blue-600 dark:text-cyan-400" : "border-blue-500/30 dark:border-cyan-500/30 text-blue-700/50 dark:text-cyan-500/50 hover:bg-blue-100/30 dark:bg-cyan-900/30 hover:text-blue-600 dark:text-cyan-400"}`}
+                variant={hasUpvoted ? "cyan" : "ghost"}
+                size="xs"
+                className={`flex-1 border ${hasUpvoted ? "bg-blue-100/50 dark:bg-cyan-900/50 text-blue-600 dark:text-cyan-400 border-blue-400 dark:border-cyan-400" : "border-blue-500/30 dark:border-cyan-500/30 text-blue-700/50 dark:text-cyan-500/50 hover:bg-blue-100/30 dark:bg-cyan-900/30 hover:text-blue-600 dark:text-cyan-400"}`}
               >
-                <ThumbsUp className={`w-3 h-3 ${hasUpvoted ? "fill-cyan-400" : ""}`} />
+                <ThumbsUp className={`w-3 h-3 ${hasUpvoted ? "fill-cyan-400 text-black dark:text-cyan-400" : ""}`} />
                 Confirm ({upvoters.length})
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={(e) => { e.stopPropagation(); onVote(report.id, "down", upvoters, downvoters); }}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-[10px] font-bold uppercase border transition-all ${hasDownvoted ? "border-red-500 bg-red-900/50 text-red-500" : "border-blue-500/30 dark:border-cyan-500/30 text-blue-700/50 dark:text-cyan-500/50 hover:bg-red-900/30 hover:text-red-500"}`}
+                variant={hasDownvoted ? "red" : "ghost"}
+                size="xs"
+                className={`flex-1 border ${hasDownvoted ? "border-red-500 bg-red-900/50 text-red-500" : "border-blue-500/30 dark:border-cyan-500/30 text-blue-700/50 dark:text-cyan-500/50 hover:bg-red-900/30 hover:text-red-500"}`}
               >
                 <ThumbsDown className={`w-3 h-3 ${hasDownvoted ? "fill-red-500" : ""}`} />
                 Dispute ({downvoters.length})
-              </button>
+              </Button>
             </div>
           </div>
 

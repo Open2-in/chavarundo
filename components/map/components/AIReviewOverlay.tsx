@@ -1,4 +1,6 @@
 import { CheckCircle, MapPinIcon } from "lucide-react";
+import Dialog from "@/components/base/Dialog";
+import Button from "@/components/base/Button";
 
 interface AIReviewOverlayProps {
   image: string;
@@ -31,9 +33,13 @@ export default function AIReviewOverlay({
           animation: scanAnimation 2.5s linear infinite;
         }
       `}</style>
-      <div className="fixed inset-0 z-[2700] bg-black/70 backdrop-blur-md" />
-      <div className="fixed z-[2701] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(380px,92vw)] bg-neutral-950 border border-cyan-500/40 rounded-2xl font-mono shadow-[0_0_40px_rgba(0,255,255,0.25)] p-6 flex flex-col gap-5 text-center">
-
+      <Dialog
+        isOpen={true}
+        onClose={undefined}
+        zIndexBackdrop="z-[2700]"
+        zIndexContent="z-[2701]"
+        className="bg-neutral-950 text-center gap-5"
+      >
         {isReviewing ? (
           <>
             <div className="flex flex-col items-center">
@@ -100,37 +106,42 @@ export default function AIReviewOverlay({
             </div>
 
             {result.verified ? (
-              <button
+              <Button
                 onClick={onConfirm}
-                className="w-full py-2.5 font-bold uppercase tracking-widest text-[11px] rounded-xl transition-all bg-green-500 hover:bg-green-400 text-black shadow-[0_0_15px_rgba(74,222,128,0.3)]"
+                variant="green"
+                fullWidth
               >
                 Go to Map
-              </button>
+              </Button>
             ) : (
-              <div className="flex flex-col gap-2">
-                <button
+              <div className="flex flex-col gap-2 w-full">
+                <Button
                   onClick={onRetake}
-                  className="w-full py-2.5 font-bold uppercase tracking-widest text-[11px] rounded-xl transition-all bg-cyan-500 hover:bg-cyan-400 text-black shadow-[0_0_15px_rgba(0,240,255,0.3)]"
+                  variant="cyan"
+                  fullWidth
                 >
                   ↩ Retake Image
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={onConfirm}
-                  className="w-full py-2.5 font-bold uppercase tracking-widest text-[11px] rounded-xl transition-all bg-yellow-500 hover:bg-yellow-400 text-black shadow-[0_0_15px_rgba(234,179,8,0.3)]"
+                  variant="yellow"
+                  fullWidth
                 >
                   Request Review
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={onCancel}
-                  className="w-full py-2 font-bold uppercase tracking-widest text-[10px] rounded-xl transition-all bg-neutral-800 hover:bg-red-900/60 text-red-400 border border-red-500/30 hover:border-red-500/60"
+                  variant="ghost"
+                  className="bg-neutral-900 hover:bg-red-900/60 text-red-400 border border-red-500/30 hover:border-red-500/60"
+                  fullWidth
                 >
                   Cancel
-                </button>
+                </Button>
               </div>
             )}
           </>
         ) : null}
-      </div>
+      </Dialog>
     </>
   );
 }

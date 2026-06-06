@@ -8,6 +8,10 @@ import { useWasteReports } from "@/store/firebase";
 import { fetchAddress } from "@/services/geo";
 import { clampReporterName, getStoredReporterName, saveReporterName } from "../utils";
 
+import Button from "@/components/base/Button";
+import Input from "@/components/base/Input";
+import Textarea from "@/components/base/Textarea";
+
 interface SubmitRouteFormProps {
   currentPathEncoded: string | null;
   currentRouteDistance: number | null;
@@ -155,97 +159,76 @@ export default function SubmitRouteForm({
   };
 
   const currentSeverity = draft.severity || "low";
-  const notesLength = (draft.notes || "").length;
 
   return (
-    <div className="flex flex-col gap-5 w-[280px]">
-      <div className="flex items-center justify-center gap-2 text-blue-600 dark:text-cyan-400 mb-2 border-b border-blue-500/30 dark:border-cyan-500/30 pb-3">
+    <div className="flex flex-col gap-4 w-full max-h-[75vh] overflow-y-auto pr-1">
+      <div className="flex items-center justify-center gap-2 text-blue-600 dark:text-cyan-400 mb-1 border-b border-cyan-500/20 pb-2">
         <CheckCircle className="w-5 h-5 drop-shadow-[0_0_8px_rgba(0,240,255,0.8)]" />
         <span className="uppercase tracking-[0.2em] font-bold text-xs">
           Route Selected
         </span>
       </div>
 
-      <div className="flex flex-col gap-2 text-left">
-        <label className="text-[10px] uppercase font-bold tracking-widest text-blue-700/70 dark:text-cyan-500/70 border-l-2 border-blue-500 dark:border-cyan-500 pl-2">
-          Reporting As
-        </label>
-        <input
-          type="text"
-          value={draft.userName || ""}
-          onChange={(e) => {
-            reporterNameTouched.current = true;
-            updateDraft({ userName: clampReporterName(e.target.value) });
-          }}
-          placeholder={user?.displayName || user?.email || "Anonymous"}
-          className="text-[10px] text-blue-500 dark:text-cyan-300 bg-blue-100/30 dark:bg-cyan-900/30 border border-blue-500/30 dark:border-cyan-500/30 p-2 outline-none focus:border-blue-500 dark:focus:border-cyan-400 placeholder:text-blue-400/50 dark:placeholder:text-cyan-300/30"
-        />
-      </div>
+      <Input
+        label="Reporting As"
+        type="text"
+        value={draft.userName || ""}
+        onChange={(e) => {
+          reporterNameTouched.current = true;
+          updateDraft({ userName: clampReporterName(e.target.value) });
+        }}
+        placeholder={user?.displayName || user?.email || "Anonymous"}
+      />
 
-      <div className="flex flex-col gap-2 text-left">
-        <label className="text-[10px] uppercase font-bold tracking-widest text-blue-700/70 dark:text-cyan-500/70 border-l-2 border-blue-500 dark:border-cyan-500 pl-2">
-          Location
+      <div className="flex flex-col gap-1 text-left w-full font-mono">
+        <label className="text-[9px] uppercase font-bold tracking-widest text-cyan-500/60 pl-1">
+          Location Address
         </label>
-        <p className="text-[10px] text-blue-500 dark:text-cyan-300 bg-blue-100/30 dark:bg-cyan-900/30 border border-blue-500/30 dark:border-cyan-500/30 p-2 break-words">
+        <p className="text-[10px] text-neutral-800 dark:text-neutral-200 bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-2.5 rounded-xl break-words leading-relaxed">
           {draft.address || "Locating..."}
         </p>
       </div>
 
       <div className="flex flex-col gap-2 text-left">
-        <label className="text-[10px] uppercase font-bold tracking-widest text-blue-700/70 dark:text-cyan-500/70 border-l-2 border-blue-500 dark:border-cyan-500 pl-2">
-          Severity Level
-        </label>
+        <label className="text-[9px] uppercase font-bold tracking-widest text-cyan-500/60 pl-1">Severity Level</label>
         <div className="flex gap-2">
-          <button
-            onClick={() => {
-              setSeverity("low");
-              updateDraft({ severity: "low" });
-            }}
-            className={`flex-1 py-1.5 text-[10px] font-bold uppercase tracking-widest border transition-all ${currentSeverity === "low" ? "bg-[#00f0ff] text-black shadow-[0_0_10px_#00f0ff] border-[#00f0ff]" : "bg-white dark:bg-black text-[#00f0ff] border-[#00f0ff]/40 hover:bg-[#00f0ff]/20"}`}
-          >
-            Low
-          </button>
-          <button
-            onClick={() => {
-              setSeverity("medium");
-              updateDraft({ severity: "medium" });
-            }}
-            className={`flex-1 py-1.5 text-[10px] font-bold uppercase tracking-widest border transition-all ${currentSeverity === "medium" ? "bg-[#ff9900] text-black shadow-[0_0_10px_#ff9900] border-[#ff9900]" : "bg-white dark:bg-black text-[#ff9900] border-[#ff9900]/40 hover:bg-[#ff9900]/20"}`}
-          >
-            Medium
-          </button>
-          <button
-            onClick={() => {
-              setSeverity("high");
-              updateDraft({ severity: "high" });
-            }}
-            className={`flex-1 py-1.5 text-[10px] font-bold uppercase tracking-widest border transition-all ${currentSeverity === "high" ? "bg-[#ff003c] text-black shadow-[0_0_10px_#ff003c] border-[#ff003c]" : "bg-white dark:bg-black text-[#ff003c] border-[#ff003c]/40 hover:bg-[#ff003c]/20"}`}
-          >
-            High
-          </button>
+          {(["low", "medium", "high"] as const).map((s) => {
+            const isSelected = currentSeverity === s;
+            let btnVariant: "cyan" | "yellow" | "red" | "ghost" = "ghost";
+            if (isSelected) {
+              if (s === "low") btnVariant = "cyan";
+              else if (s === "medium") btnVariant = "yellow";
+              else btnVariant = "red";
+            }
+            return (
+              <Button
+                key={s}
+                onClick={() => {
+                  setSeverity(s);
+                  updateDraft({ severity: s });
+                }}
+                variant={btnVariant}
+                size="xs"
+                className={`flex-1 ${!isSelected ? "border border-neutral-300 dark:border-neutral-800" : ""}`}
+              >
+                {s}
+              </Button>
+            );
+          })}
         </div>
       </div>
 
-      <div className="flex flex-col gap-2 text-left">
-        <div className="flex justify-between items-center">
-          <label className="text-[10px] uppercase font-bold tracking-widest text-blue-700/70 dark:text-cyan-500/70 border-l-2 border-blue-500 dark:border-cyan-500 pl-2">
-            Optional Notes
-          </label>
-          <span className="text-[9px] text-blue-700/50 dark:text-cyan-500/50 uppercase">
-            {notesLength}/200
-          </span>
-        </div>
-        <textarea
-          maxLength={200}
-          value={draft.notes || ""}
-          onChange={(e) => updateDraft({ notes: e.target.value })}
-          placeholder="Describe the issue..."
-          className="bg-blue-100/20 dark:bg-cyan-900/20 border border-blue-500/30 dark:border-cyan-500/30 text-blue-500 dark:text-cyan-300 text-[10px] p-2 focus:outline-none focus:border-blue-500 dark:border-cyan-500 focus:shadow-[0_0_5px_rgba(0,240,255,0.3)] resize-none h-16 w-full placeholder:text-blue-700/30 dark:text-cyan-500/30 font-mono scrollbar-none"
-        />
-      </div>
+      <Textarea
+        label="Optional Notes"
+        maxLength={200}
+        showCharCount
+        value={draft.notes || ""}
+        onChange={(e) => updateDraft({ notes: e.target.value })}
+        placeholder="Describe the issue..."
+      />
 
-      <div className="flex flex-col gap-2 text-left">
-        <label className="text-[10px] uppercase font-bold tracking-widest text-blue-700/70 dark:text-cyan-500/70 border-l-2 border-blue-500 dark:border-cyan-500 pl-2">
+      <div className="flex flex-col gap-1 text-left w-full font-mono">
+        <label className="text-[9px] uppercase font-bold tracking-widest text-cyan-500/60 pl-1">
           Photo (Optional)
         </label>
         <input
@@ -256,63 +239,62 @@ export default function SubmitRouteForm({
           onChange={handleImageChange}
         />
         {draft.imageUrl ? (
-          <div className="relative border border-blue-500/50 dark:border-cyan-500/50 p-1 w-full max-h-24 overflow-hidden rounded-sm flex items-center justify-center bg-white/50 dark:bg-black/50">
+          <div className="relative border border-neutral-200 dark:border-neutral-800 p-1 w-full max-h-24 overflow-hidden rounded-xl flex items-center justify-center bg-neutral-100 dark:bg-neutral-900">
             <img
               src={draft.imageUrl}
-              alt="Road Waste Image"
-              className="max-h-20 object-contain"
+              alt="Road Waste"
+              className="max-h-20 object-contain rounded-lg"
             />
             <button
               onClick={() => {
                 updateDraft({ imageUrl: "" });
                 if (fileInputRef.current) fileInputRef.current.value = "";
               }}
-              className="absolute top-1 right-1 bg-white/80 dark:bg-black/80 border border-blue-500 dark:border-cyan-500 text-blue-700 dark:text-cyan-500 p-0.5 hover:text-red-500 hover:border-red-500 transition-colors"
+              className="absolute top-1.5 right-1.5 bg-white/80 dark:bg-black/80 border border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 p-0.5 rounded-md hover:text-red-500 hover:border-red-500 transition-colors"
             >
-              <X className="w-3 h-3" />
+              <X className="w-3.5 h-3.5" />
             </button>
           </div>
         ) : (
-          <button
+          <Button
             onClick={() => fileInputRef.current?.click()}
-            className="border border-dashed border-blue-500/50 dark:border-cyan-500/50 hover:border-blue-500 dark:border-cyan-500 hover:bg-blue-100/30 dark:bg-cyan-900/30 text-blue-700/70 dark:text-cyan-500/70 py-4 flex flex-col items-center justify-center gap-2 transition-colors w-full"
+            variant="outline"
+            className="w-full border-dashed py-4 flex flex-col items-center justify-center gap-2"
           >
             <Camera className="w-5 h-5 text-blue-700/50 dark:text-cyan-500/50" />
             <span className="text-[9px] uppercase tracking-widest">
               Add Photo
             </span>
-          </button>
+          </Button>
         )}
       </div>
 
       {errorMsg && (
-        <div className="text-center text-[10px] uppercase font-bold text-red-500 mt-1 bg-red-500/10 border border-red-500/30 p-1">
+        <div className="text-center text-[10px] uppercase font-bold text-red-500 mt-1 bg-red-500/10 border border-red-500/30 rounded-xl p-3">
           {errorMsg}
         </div>
       )}
 
-      <button
-        onClick={submit}
-        disabled={isSubmitting || !currentPathEncoded}
-        className="mt-2 text-black font-bold uppercase tracking-[0.15em] text-xs py-3 w-full transition-all disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed"
-        style={{
-          backgroundColor:
-            currentSeverity === "high"
-              ? "#ff003c"
-              : currentSeverity === "medium"
-                ? "#ff9900"
-                : "#00f0ff",
-          boxShadow: `0 0 15px ${currentSeverity === "high" ? "#ff003c" : currentSeverity === "medium" ? "#ff9900" : "#00f0ff"}`,
-        }}
-      >
-        {isSubmitting ? "SUBMITTING..." : "SUBMIT REPORT"}
-      </button>
-      <button
-        onClick={onCancel}
-        className="text-[10px] text-blue-700/50 dark:text-cyan-500/50 hover:text-red-400 uppercase tracking-widest transition-colors mt-2"
-      >
-        [ CANCEL ]
-      </button>
+      <div className="flex flex-col gap-2 mt-2 w-full">
+        <Button
+          onClick={submit}
+          disabled={isSubmitting || !currentPathEncoded}
+          loading={isSubmitting}
+          variant={currentSeverity === "high" ? "red" : currentSeverity === "medium" ? "yellow" : "cyan"}
+          size="lg"
+          fullWidth
+        >
+          Submit Report
+        </Button>
+        <Button
+          onClick={onCancel}
+          disabled={isSubmitting}
+          variant="cancel"
+          className="py-1"
+        >
+          Cancel
+        </Button>
+      </div>
     </div>
   );
 }

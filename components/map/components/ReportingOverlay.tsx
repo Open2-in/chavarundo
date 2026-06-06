@@ -6,6 +6,9 @@ import { ChevronDown, Heart, ExternalLink, Bug, LogOut } from "lucide-react";
 import { useAuthStore } from "@/lib/store";
 import { logout } from "@/lib/firebase";
 
+import Card from "@/components/base/Card";
+import Button from "@/components/base/Button";
+
 interface ReportingOverlayProps {
   reportsCount: number;
   reportingMode: boolean;
@@ -78,7 +81,11 @@ export default function ReportingOverlay({
         onMouseEnter={() => setIsDesktopHovered(true)}
         onMouseLeave={() => setIsDesktopHovered(false)}
       >
-        <div className="bg-white/80 dark:bg-black/80 border border-blue-500/50 dark:border-cyan-500/50 p-4 md:p-5 shadow-[0_0_20px_rgba(0,255,255,0.15)] backdrop-blur-md relative pointer-events-auto transition-all duration-300">
+        <Card
+          variant="default"
+          padding="none"
+          className="p-4 md:p-5 shadow-[0_0_20px_rgba(0,255,255,0.15)] relative pointer-events-auto transition-all duration-300 border-blue-500/50 dark:border-cyan-500/50"
+        >
           <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-50"></div>
 
           <div className="flex justify-between items-center">
@@ -136,9 +143,11 @@ export default function ReportingOverlay({
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <button
+              <Button
                 onClick={() => setIsExpanded(!isExpanded)}
-                className="md:hidden flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-blue-500 dark:text-cyan-300 px-2 py-1.5 border border-blue-400/50 dark:border-cyan-400/50 bg-blue-100/50 dark:bg-cyan-900/50 hover:bg-blue-50/60 dark:bg-cyan-800/60 shadow-[0_0_8px_rgba(0,255,255,0.2)] transition-all"
+                variant="outline"
+                size="xs"
+                className="md:hidden flex items-center gap-1"
               >
                 <div
                   className="transition-transform duration-300"
@@ -147,7 +156,7 @@ export default function ReportingOverlay({
                   <ChevronDown className="w-3.5 h-3.5" />
                 </div>
                 {isExpanded ? "Less" : "More"}
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -175,34 +184,38 @@ export default function ReportingOverlay({
               </div>
             </div>
           </div>
-        </div>
+        </Card>
 
         <div
           className={`grid transition-[grid-template-rows] duration-300 pointer-events-auto ${isDesktopHovered ? "md:grid-rows-[1fr]" : "md:grid-rows-[0fr]"} ${isExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}
         >
           <div className="overflow-hidden flex flex-col">
             <div className="flex flex-col gap-2 md:gap-3">
-              <button
+              <Button
                 onClick={() => document.getElementById("seo-content")?.scrollIntoView({ behavior: "smooth" })}
-                className="bg-white/50 dark:bg-black/50 hover:bg-blue-50/10 dark:bg-cyan-500/10 text-blue-700 dark:text-cyan-500 hover:text-blue-500 dark:text-cyan-300 py-1.5 md:py-2 px-4 transition-all border border-blue-500/30 dark:border-cyan-500/30 hover:border-blue-400/50 dark:border-cyan-400/50 flex items-center justify-center gap-2 text-[10px] uppercase tracking-widest backdrop-blur-md"
+                variant="outline"
+                size="sm"
+                className="w-full bg-white/50 dark:bg-black/50 hover:bg-blue-50/10 dark:hover:bg-cyan-500/10 text-blue-700 dark:text-cyan-500 hover:text-blue-500 dark:hover:text-cyan-300 border-blue-500/30 dark:border-cyan-500/30 hover:border-blue-400/50 dark:border-cyan-400/50"
               >
                 <ExternalLink className="w-3 h-3" /> About
-              </button>
+              </Button>
               <a
                 href="https://github.com/open2-in/chavarundo/issues/new"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="bg-white/50 dark:bg-black/50 hover:bg-yellow-500/10 text-blue-700 dark:text-cyan-500 hover:text-yellow-400 py-1.5 md:py-2 px-4 transition-all border border-blue-500/30 dark:border-cyan-500/30 hover:border-yellow-500/50 flex items-center justify-center gap-2 text-[10px] uppercase tracking-widest backdrop-blur-md"
+                className="bg-white/50 dark:bg-black/50 hover:bg-yellow-500/10 text-blue-700 dark:text-cyan-500 hover:text-yellow-400 py-1.5 md:py-2 px-4 transition-all border border-blue-500/30 dark:border-cyan-500/30 hover:border-yellow-500/50 flex items-center justify-center gap-2 text-[10px] uppercase tracking-widest backdrop-blur-md rounded-xl"
               >
                 <Bug className="w-3 h-3" /> Report a Bug <ExternalLink className="w-2.5 h-2.5 opacity-60" />
               </a>
               {user && (
-                <button
+                <Button
                   onClick={logout}
-                  className="bg-white/50 dark:bg-black/50 hover:bg-red-500/20 text-blue-700 dark:text-cyan-500 hover:text-red-400 py-1.5 md:py-2 px-4 transition-all border border-blue-500/30 dark:border-cyan-500/30 hover:border-red-500/50 flex items-center justify-center gap-2 text-[10px] uppercase tracking-widest backdrop-blur-md"
+                  variant="outline"
+                  size="sm"
+                  className="w-full bg-white/50 dark:bg-black/50 hover:bg-red-500/20 hover:text-red-400 border border-blue-500/30 dark:border-cyan-500/30 hover:border-red-500/50"
                 >
                   <LogOut className="w-3 h-3" /> SIGN OUT
-                </button>
+                </Button>
               )}
             </div>
           </div>
