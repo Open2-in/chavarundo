@@ -722,8 +722,8 @@ export default function LeafletWasteMap({ initialReports }: { initialReports?: a
           <button
             onClick={() => setSearchOpen((o) => !o)}
             className={`p-2 bg-white/90 dark:bg-black/90 border rounded shadow-md transition-all ${searchOpen
-                ? "border-blue-400 dark:border-cyan-400 text-blue-600 dark:text-cyan-400 bg-blue-50 dark:bg-cyan-900/30 shadow-[0_0_12px_rgba(0,100,255,0.25)] dark:shadow-[0_0_12px_rgba(0,255,255,0.25)]"
-                : "border-neutral-200 dark:border-cyan-500/30 text-blue-600 dark:text-cyan-400 hover:bg-blue-50 dark:hover:bg-cyan-900/30 hover:shadow-[0_0_12px_rgba(0,100,255,0.2)] dark:hover:shadow-[0_0_12px_rgba(0,255,255,0.2)]"
+              ? "border-blue-400 dark:border-cyan-400 text-blue-600 dark:text-cyan-400 bg-blue-50 dark:bg-cyan-900/30 shadow-[0_0_12px_rgba(0,100,255,0.25)] dark:shadow-[0_0_12px_rgba(0,255,255,0.25)]"
+              : "border-neutral-200 dark:border-cyan-500/30 text-blue-600 dark:text-cyan-400 hover:bg-blue-50 dark:hover:bg-cyan-900/30 hover:shadow-[0_0_12px_rgba(0,100,255,0.2)] dark:hover:shadow-[0_0_12px_rgba(0,255,255,0.2)]"
               }`}
             title="Search Location"
           >
@@ -2949,7 +2949,7 @@ function ReportingOverlay({
                     <Heart className="w-2.5 h-2.5 md:w-3 md:h-3 text-red-500 fill-red-500 animate-pulse" />
                     <span>by</span>
                     <a
-                      href="https://www.linkedin.com/in/ananthanarayanank/"
+                      href="https://github.com/ananthun111"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-blue-600 dark:text-cyan-400 hover:text-black dark:text-white transition-colors underline underline-offset-2 decoration-cyan-500/50 pointer-events-auto"
