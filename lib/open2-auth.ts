@@ -21,7 +21,40 @@ interface AIServiceLoginResponse {
   tokenType: string;
 }
 
-export async function getAIServiceToken(): Promise<string> {
+interface CachedToken {
+  token: string;
+  /** Unix timestamp in ms when the token expires */
+  exp: number;
+}
+
+let cachedToken: CachedToken | null = null;
+let inFlightToken: Promise<string> | null = null;
+
+const TOKEN_SKEW_MS = 90 * 1000; // 90 seconds skew
+
+function getJwtExpiry(token: string): number | null {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const base64Url = parts[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    const payload = JSON.parse(jsonPayload);
+    if (typeof payload.exp === 'number') {
+      return payload.exp * 1000;
+    }
+  } catch (e) {
+    console.error("Error decoding JWT expiry:", e);
+  }
+  return null;
+}
+
+async function mintAIServiceToken(): Promise<CachedToken> {
   const authServiceUrl = (process.env.OPEN2_AUTH_SERVICE_URL || "https://auth.open2.in").replace(/\/$/, "");
   const clientId = process.env.CHAVARUNDO_CLIENT_ID;
   const clientSecret = process.env.CHAVARUNDO_CLIENT_SECRET;
@@ -91,5 +124,27 @@ export async function getAIServiceToken(): Promise<string> {
   }
 
   const loginData: AIServiceLoginResponse = await loginRes.json();
-  return loginData.accessToken;
+  const token = loginData.accessToken;
+  const exp = getJwtExpiry(token) || (Date.now() + 3600 * 1000);
+
+  return { token, exp };
+}
+
+export async function getAIServiceToken(forceRefresh = false): Promise<string> {
+  const now = Date.now();
+  if (!forceRefresh && cachedToken && cachedToken.exp - TOKEN_SKEW_MS > now) {
+    return cachedToken.token;
+  }
+  if (inFlightToken) return inFlightToken;
+
+  inFlightToken = mintAIServiceToken()
+    .then((t) => {
+      cachedToken = t;
+      return t.token;
+    })
+    .finally(() => {
+      inFlightToken = null;
+    });
+
+  return inFlightToken;
 }

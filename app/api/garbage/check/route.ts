@@ -91,6 +91,24 @@ export async function POST(req: NextRequest) {
         },
         body: formData,
       });
+
+      // If the response is 401 Unauthorized, the cached token might have expired.
+      // Force refresh the token and retry the request once.
+      if (aiRes.status === 401) {
+        console.warn("AI service returned 401 Unauthorized. Retrying with a refreshed token...");
+        try {
+          aiToken = await getAIServiceToken(true);
+          aiRes = await fetch(`${aiServiceUrl}/garbage/check`, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${aiToken}`,
+            },
+            body: formData,
+          });
+        } catch (retryErr: any) {
+          console.error("Retry AI service authentication failed:", retryErr);
+        }
+      }
     } catch (e: any) {
       console.error("AI service connection failed:", e);
       await updateReportStatus(reportId, "pending");
