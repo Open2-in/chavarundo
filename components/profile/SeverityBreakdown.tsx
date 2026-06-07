@@ -1,5 +1,5 @@
 import { BarChart3 } from "lucide-react";
-import type { UserStats } from "./types";
+import type { UserStats } from "@/types";
 
 interface SeverityBreakdownProps {
   stats: UserStats;

@@ -1,5 +1,5 @@
 import { Flag, ThumbsUp, TrendingUp } from "lucide-react";
-import type { UserStats } from "./types";
+import type { UserStats } from "@/types";
 
 interface StatsGridProps {
   stats: UserStats;

@@ -1,0 +1,43 @@
+<svg class="w-full h-full" viewBox="0 0 400 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="blueCyan" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00f0ff" />
+      <stop offset="100%" stop-color="#0072ff" />
+    </linearGradient>
+  </defs>
+
+  <!-- Smartphone mockup -->
+  <rect x="150" y="15" width="100" height="150" rx="16" fill="#121212" stroke="#333" stroke-width="3" />
+  <rect x="155" y="25" width="90" height="130" rx="10" fill="#000" />
+  
+  <!-- Inner camera screen -->
+  <rect x="158" y="28" width="84" height="100" rx="6" fill="#1c1c1e" />
+  
+  <!-- Mock photo elements -->
+  <path d="M 165 110 L 180 95 L 205 115 L 220 105 L 235 118" stroke="#444" stroke-width="2" stroke-linecap="round" />
+  
+  <!-- Simulated garbage pile in screen -->
+  <path d="M 175 115 Q 185 85 200 95 T 225 115" fill="#333" />
+  <circle cx="185" cy="105" r="3" fill="#ff9900" opacity="0.7" />
+  <circle cx="210" cy="108" r="4" fill="#ff003c" opacity="0.6" />
+
+  <!-- Viewfinder crosshairs -->
+  <path d="M 190 78 L 195 78 A 5 5 0 0 0 200 73 L 200 68" stroke="#00f0ff" stroke-width="1.5" fill="none" />
+  <path d="M 210 78 L 205 78 A 5 5 0 0 1 200 73 L 200 68" stroke="#00f0ff" stroke-width="1.5" fill="none" />
+  <path d="M 190 62 L 195 62 A 5 5 0 0 1 200 67 L 200 72" stroke="#00f0ff" stroke-width="1.5" fill="none" />
+  <path d="M 210 62 L 205 62 A 5 5 0 0 0 200 67 L 200 72" stroke="#00f0ff" stroke-width="1.5" fill="none" />
+  
+  <!-- Camera lens top -->
+  <circle cx="200" cy="20" r="3" fill="#333" />
+
+  <!-- Geotag GPS overlay -->
+  <rect x="110" y="115" width="80" height="32" rx="6" fill="rgba(0, 240, 255, 0.15)" stroke="#00f0ff" stroke-width="1" class="backdrop-blur-sm" />
+  <text x="116" y="127" fill="#00f0ff" font-size="7" font-family="monospace" font-weight="bold">GPS ACTIVE</text>
+  <text x="116" y="138" fill="#fff" font-size="6.5" font-family="monospace">9.9312°N 76.26°E</text>
+
+  <!-- Flash animation -->
+  <circle cx="200" cy="70" r="1" fill="#fff" opacity="0">
+    <animate attributeName="r" values="1;45;1" dur="2.5s" repeatCount="indefinite" />
+    <animate attributeName="opacity" values="0;0.8;0" dur="2.5s" repeatCount="indefinite" />
+  </circle>
+</svg>

@@ -1,0 +1,41 @@
+<svg class="w-full h-full" viewBox="0 0 400 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Map Grid -->
+  <path d="M 50 20 L 350 20 M 50 60 L 350 60 M 50 100 L 350 100 M 50 140 L 350 140" stroke="#222" stroke-width="1" />
+  <path d="M 90 10 L 90 170 M 170 10 L 170 170 M 250 10 L 250 170 M 330 10 L 330 170" stroke="#222" stroke-width="1" />
+
+  <!-- Streets -->
+  <path d="M 90 60 L 170 100 L 330 100" stroke="#333" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M 170 10 L 170 170" stroke="#333" stroke-width="12" stroke-linecap="round" />
+  <path d="M 90 60 L 170 100 L 330 100" stroke="#00f0ff" stroke-width="1" stroke-dasharray="3 3" stroke-linecap="round" stroke-linejoin="round" opacity="0.5" />
+
+  <!-- 30m constraint circle -->
+  <circle cx="170" cy="100" r="45" fill="rgba(0, 240, 255, 0.06)" stroke="#00f0ff" stroke-width="1.5" stroke-dasharray="4 3" />
+  <text x="175" y="68" fill="#00f0ff" font-size="8" font-family="monospace" opacity="0.8">30m Limit</text>
+
+  <!-- Anchor Center Pin -->
+  <circle cx="170" cy="100" r="3" fill="#fff" />
+  
+  <!-- Animated Drag Pin -->
+  <g>
+    <animateTransform 
+      attributeName="transform" 
+      type="translate" 
+      values="0,0; -25,-15; 0,0" 
+      dur="4s" 
+      repeatCount="indefinite" 
+    />
+    <!-- Red marker pin -->
+    <path d="M 170 100 C 160 85 160 75 170 70 C 180 75 180 85 170 100 Z" fill="#ff003c" />
+    <circle cx="170" cy="80" r="3.5" fill="#fff" />
+    
+    <!-- Pulse Indicator -->
+    <circle cx="170" cy="100" r="8" stroke="#ff003c" stroke-width="1.5" opacity="0.5">
+      <animate attributeName="r" values="3;10;3" dur="2s" repeatCount="indefinite" />
+    </circle>
+
+    <!-- Hand Drag Cursor -->
+    <g transform="translate(175, 95)" opacity="0.9">
+      <path d="M0 0 L10 10 L6 11 L10 18 L7 19 L3 12 L0 15 Z" fill="#fff" stroke="#000" stroke-width="1.5" />
+    </g>
+  </g>
+</svg>

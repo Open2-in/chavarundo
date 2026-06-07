@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
-  X,
   User,
   Flag,
   ChevronRight,
@@ -18,41 +17,32 @@ import {
   ExternalLink,
 } from "lucide-react";
 
-import { getColor, formatShortDate } from "./types";
+import { getSeverityColor, formatShortDate } from "@/components/utils";
+import { Sheet } from "@/components/base";
+import { useUI } from "@/store/uiStore";
+import { useMapSelection } from "@/store/mapStore";
+import { useWasteReports } from "@/store/firebase";
 
-export interface AuthoritySubject {
-  type: "mla" | "mp" | "ward" | "lsgd" | "district";
-  name: string;
-  party?: string | null;
-  phone?: string | null;
-  email?: string | null;
-  idKey: string | number; // e.g. acNo for MLA, pcName for MP, secLsgCode for Ward, lsgCode for LSGD
-  subIdKey?: string | number; // e.g. wardNo for Ward
-  label?: string; // e.g. "Assembly Constituency"
-}
-
-export interface AuthorityProfilePanelProps {
-  isOpen: boolean;
-  onClose: () => void;
-  subject: AuthoritySubject | null;
-  reports: any[];
-  onNavigateToReport?: (reportId: string) => void;
-}
+import { AuthoritySubject } from "@/types";
 
 type PanelView = "profile" | "reports";
 
-export default function AuthorityProfilePanel({
-  isOpen,
-  onClose,
-  subject,
-  reports = [],
-  onNavigateToReport,
-}: AuthorityProfilePanelProps) {
+export default function AuthorityProfilePanel() {
+  const { activePanel, setActivePanel } = useUI();
+  const isOpen = activePanel === "authority";
+  const { authoritySubject: subject, setPendingDeepLinkId } = useMapSelection();
+  const reports = useWasteReports((s) => s.reports);
+
   const [view, setView] = useState<PanelView>("profile");
 
   // Reset view when panel closes
   const handleClose = () => {
-    onClose();
+    setActivePanel(null);
+  };
+
+  const onNavigateToReport = (id: string) => {
+    setActivePanel(null);
+    setPendingDeepLinkId(id);
   };
 
   useEffect(() => {
@@ -143,80 +133,52 @@ export default function AuthorityProfilePanel({
   if (!subject) return null;
 
   // Determine role label and icon
-  const roleLabel = {
+  const roleMap: Record<"mla" | "mp" | "ward" | "lsgd" | "district", string> = {
     mla: "Member of Legislative Assembly (MLA)",
     mp: "Member of Parliament (MP)",
     ward: "Ward Member (Local Body Representative)",
     lsgd: "Local Self Government Body (LSGD)",
     district: "District Administration",
-  }[subject.type];
+  };
+  const roleLabel = roleMap[subject.type as "mla" | "mp" | "ward" | "lsgd" | "district"];
 
-  const IconComponent = {
+  const iconMap: Record<"mla" | "mp" | "ward" | "lsgd" | "district", React.ComponentType<any>> = {
     mla: Shield,
     mp: Landmark,
     ward: User,
     lsgd: Landmark,
     district: Landmark,
-  }[subject.type];
+  };
+  const IconComponent = iconMap[subject.type as "mla" | "mp" | "ward" | "lsgd" | "district"];
 
   const handleViewOnMap = (reportId: string) => {
-    onNavigateToReport?.(reportId);
+    onNavigateToReport(reportId);
     handleClose();
   };
+
+  const sheetTitle = view === "reports" ? "Jurisdiction Reports" : "Representative";
 
   return (
     <AnimatePresence>
       {isOpen && (
-        <motion.div
-          key="backdrop"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
-          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[2001]"
-          onClick={handleClose}
-        />
-      )}
-
-      {isOpen && (
-        <motion.div
-          key="panel"
-          initial={{ x: "100%", opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          exit={{ x: "100%", opacity: 0 }}
-          transition={{ type: "spring", damping: 28, stiffness: 300 }}
-          className="fixed top-0 right-0 h-full w-full max-w-sm z-[2002] flex flex-col bg-white/95 dark:bg-neutral-950/95 border-l border-blue-200 dark:border-cyan-500/30 shadow-[-4px_0_30px_rgba(0,100,255,0.1)] dark:shadow-[-4px_0_30px_rgba(0,255,255,0.1)]"
-        >
-          {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-blue-200 dark:border-cyan-500/30 bg-blue-50/50 dark:bg-cyan-950/50">
-            <div className="flex items-center gap-2">
-              <IconComponent className="w-5 h-5 text-blue-600 dark:text-cyan-400" />
-              <h2 className="text-sm font-bold uppercase tracking-widest text-blue-800 dark:text-cyan-400 font-mono truncate max-w-[200px]">
-                {view === "reports" ? "Jurisdiction Reports" : "Representative"}
-              </h2>
-            </div>
-            <div className="flex items-center gap-1">
-              {view === "reports" && (
-                <button
-                  onClick={() => setView("profile")}
-                  className="px-2 py-1 rounded text-[10px] font-mono font-bold uppercase tracking-wider text-blue-500 dark:text-cyan-500 hover:bg-blue-100 dark:hover:bg-cyan-900/40 transition-colors"
-                >
-                  ← Stats
-                </button>
-              )}
+        <Sheet
+          onClose={handleClose}
+          title={sheetTitle}
+          icon={<IconComponent className="w-5 h-5 text-blue-600 dark:text-cyan-400" />}
+          headerRight={
+            view === "reports" && (
               <button
-                onClick={handleClose}
-                className="p-1.5 rounded text-blue-500 dark:text-cyan-500 hover:bg-blue-100 dark:hover:bg-cyan-900/40 transition-colors"
-                title="Close"
+                onClick={() => setView("profile")}
+                className="px-2 py-1 rounded text-[10px] font-mono font-bold uppercase tracking-wider text-blue-500 dark:text-cyan-500 hover:bg-blue-100 dark:hover:bg-cyan-900/40 transition-colors"
               >
-                <X className="w-4 h-4" />
+                ← Stats
               </button>
-            </div>
-          </div>
-
+            )
+          }
+        >
           {/* ===== PROFILE STATS VIEW ===== */}
           {view === "profile" && (
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1">
               {/* Representative Card */}
               <div className="px-4 py-5 border-b border-blue-200/50 dark:border-cyan-500/20 bg-gradient-to-b from-blue-50/50 dark:from-cyan-950/30 to-transparent">
                 <div className="flex items-start gap-3">
@@ -257,7 +219,7 @@ export default function AuthorityProfilePanel({
                     {subject.email && (
                       <a
                         href={`mailto:${subject.email}`}
-                        className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded bg-blue-500/10 dark:bg-cyan-500/20 border border-blue-500/30 dark:border-cyan-500/30 hover:bg-blue-500/20 dark:hover:bg-cyan-500/30 text-blue-600 dark:text-cyan-400 text-[10px] font-bold uppercase tracking-widest transition-colors"
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded bg-blue-500/10 dark:bg-cyan-500/20 border border-blue-500/30 dark:border-cyan-500/30 hover:bg-blue-50/20 dark:hover:bg-cyan-500/30 text-blue-600 dark:text-cyan-400 text-[10px] font-bold uppercase tracking-widest transition-colors"
                       >
                         <Mail className="w-3.5 h-3.5" /> Email
                       </a>
@@ -388,7 +350,7 @@ export default function AuthorityProfilePanel({
           {view === "reports" && (
             <>
               {/* Stats Summary Bar */}
-              <div className="flex items-center justify-around px-4 py-2 border-b border-blue-200/50 dark:border-cyan-500/20 bg-blue-50/30 dark:bg-cyan-950/30 font-mono text-[9px] uppercase tracking-widest">
+              <div className="flex items-center justify-around px-4 py-2 border-b border-blue-200/50 dark:border-cyan-500/20 bg-blue-50/30 dark:bg-cyan-950/30 font-mono text-[9px] uppercase tracking-widest shrink-0">
                 <div className="flex flex-col items-center">
                   <span className="text-sm font-bold text-blue-700 dark:text-cyan-400">
                     {matchReports.length}
@@ -412,9 +374,9 @@ export default function AuthorityProfilePanel({
               </div>
 
               {/* Reports list scroll container */}
-              <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2 bg-neutral-50/50 dark:bg-neutral-900/10">
+              <div className="px-3 py-3 space-y-2 bg-neutral-50/50 dark:bg-neutral-900/10">
                 {matchReports.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-full text-blue-400 dark:text-cyan-500/50 font-mono">
+                  <div className="flex flex-col items-center justify-center py-20 text-blue-400 dark:text-cyan-500/50">
                     <Flag className="w-8 h-8 mb-2 opacity-50" />
                     <span className="text-xs uppercase tracking-widest">
                       No reports listed
@@ -435,8 +397,8 @@ export default function AuthorityProfilePanel({
                           <div
                             className="w-3 h-3 rounded-full"
                             style={{
-                              backgroundColor: getColor(report.severity),
-                              boxShadow: `0 0 8px ${getColor(report.severity)}60`,
+                              backgroundColor: getSeverityColor(report.severity),
+                              boxShadow: `0 0 8px ${getSeverityColor(report.severity)}60`,
                             }}
                           />
                         </div>
@@ -455,9 +417,9 @@ export default function AuthorityProfilePanel({
                             <span
                               className="text-[8px] uppercase tracking-wider font-bold px-1 py-px border"
                               style={{
-                                color: getColor(report.severity),
-                                borderColor: getColor(report.severity) + "60",
-                                backgroundColor: getColor(report.severity) + "10",
+                                color: getSeverityColor(report.severity),
+                                borderColor: getSeverityColor(report.severity) + "60",
+                                backgroundColor: getSeverityColor(report.severity) + "10",
                               }}
                             >
                               {(report.severity || "low").toUpperCase()}
@@ -495,7 +457,7 @@ export default function AuthorityProfilePanel({
               </div>
             </>
           )}
-        </motion.div>
+        </Sheet>
       )}
     </AnimatePresence>
   );

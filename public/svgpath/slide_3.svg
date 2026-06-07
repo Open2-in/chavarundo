@@ -1,0 +1,37 @@
+<svg class="w-full h-full" viewBox="0 0 400 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- AI Circle / Scanner Core -->
+  <circle cx="110" cy="90" r="35" fill="rgba(0, 240, 255, 0.08)" stroke="#00f0ff" stroke-width="1.5" />
+  <circle cx="110" cy="90" r="25" stroke="#00f0ff" stroke-width="0.5" stroke-dasharray="3 3" />
+  
+  <!-- Pulsing scan line -->
+  <line x1="80" y1="90" x2="140" y2="90" stroke="#00f0ff" stroke-width="2" opacity="0.8">
+    <animate attributeName="y1" values="60;120;60" dur="3s" repeatCount="indefinite" />
+    <animate attributeName="y2" values="60;120;60" dur="3s" repeatCount="indefinite" />
+  </line>
+  <text x="92" y="94" fill="#00f0ff" font-size="10" font-family="monospace" font-weight="bold" class="animate-pulse">AI</text>
+
+  <!-- Connection Lines (Tree) -->
+  <path d="M 145 90 L 200 90" stroke="#00f0ff" stroke-width="1.5" />
+  <path d="M 200 45 L 200 135" stroke="#00f0ff" stroke-width="1.5" />
+  <path d="M 200 45 L 230 45" stroke="#ff003c" stroke-width="1.5" />
+  <path d="M 200 75 L 230 75" stroke="#ff9900" stroke-width="1.5" />
+  <path d="M 200 105 L 230 105" stroke="#22c55e" stroke-width="1.5" />
+  <path d="M 200 135 L 230 135" stroke="#00f0ff" stroke-width="1.5" />
+
+  <!-- Authority Nodes -->
+  <!-- Node 1: NHAI (Red) -->
+  <rect x="230" y="35" width="80" height="20" rx="4" fill="#121212" stroke="#ff003c" stroke-width="1" />
+  <text x="240" y="48" fill="#ff003c" font-size="8" font-family="monospace" font-weight="bold">NHAI / MP</text>
+
+  <!-- Node 2: State PWD (Orange) -->
+  <rect x="230" y="65" width="80" height="20" rx="4" fill="#121212" stroke="#ff9900" stroke-width="1" />
+  <text x="240" y="78" fill="#ff9900" font-size="8" font-family="monospace" font-weight="bold">PWD / MLA</text>
+
+  <!-- Node 3: Panchayat/LSGD (Green) -->
+  <rect x="230" y="95" width="80" height="20" rx="4" fill="#121212" stroke="#22c55e" stroke-width="1" />
+  <text x="240" y="108" fill="#22c55e" font-size="7.5" font-family="monospace" font-weight="bold">LSGD / PANCH</text>
+
+  <!-- Node 4: Ward Member (Cyan) -->
+  <rect x="230" y="125" width="80" height="20" rx="4" fill="#121212" stroke="#00f0ff" stroke-width="1" />
+  <text x="240" y="138" fill="#00f0ff" font-size="8" font-family="monospace" font-weight="bold">WARD MEMBER</text>
+</svg>

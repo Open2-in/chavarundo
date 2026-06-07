@@ -1,52 +1,4 @@
-import type { User as FirebaseUser } from "firebase/auth";
-
-export interface UserStats {
-  totalReports: number;
-  totalUpvotes: number;
-  totalDownvotes: number;
-  netVotes: number;
-  highSeverity: number;
-  mediumSeverity: number;
-  lowSeverity: number;
-  rank: number;
-  totalContributors: number;
-  firstReportDate: Date | null;
-  latestReportDate: Date | null;
-  topLocation: string;
-}
-
-/** A user whose profile is being viewed (used when it isn't the logged-in user). */
-export interface ProfileSubject {
-  uid: string;
-  name: string;
-  photoURL?: string;
-}
-
-export interface ProfilePanelProps {
-  isOpen: boolean;
-  onClose: () => void;
-  /** The logged-in user, or null when signed out / anonymous viewing a public profile. */
-  user: FirebaseUser | null;
-  reports: any[];
-  onLogout: () => void;
-  onNavigateToReport?: (reportId: string) => void;
-  /** When set, view this user's public profile instead of the logged-in user's. */
-  subject?: ProfileSubject;
-}
-
-export type PanelView = "profile" | "contributions";
-
-export const getColor = (severity?: string) => {
-  switch (severity) {
-    case "high":
-      return "#ff003c";
-    case "medium":
-      return "#ff9900";
-    case "low":
-    default:
-      return "#00f0ff";
-  }
-};
+import { UserStats } from "@/types";
 
 export const parseFirestoreDate = (createdAt: any): Date | null => {
   if (!createdAt) return null;
@@ -56,7 +8,7 @@ export const parseFirestoreDate = (createdAt: any): Date | null => {
   return isNaN(date.getTime()) ? null : date;
 };
 
-export const formatDate = (date: Date | null) => {
+export const formatLongDate = (date: Date | null) => {
   if (!date) return "—";
   return date.toLocaleDateString("en-IN", {
     month: "short",

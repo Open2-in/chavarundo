@@ -1,5 +1,5 @@
 import { User, Trophy } from "lucide-react";
-import type { UserStats } from "./types";
+import type { UserStats } from "@/types";
 
 interface UserCardProps {
   /** Display name of the profile subject. */
