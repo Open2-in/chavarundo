@@ -12,12 +12,6 @@ export const getSeverityColor = (severity?: string) => {
   }
 };
 
-export const redMarkerIcon = typeof window !== "undefined" ? L.divIcon({
-  className: "bg-transparent",
-  html: `<div class="w-4 h-4 bg-[#00f0ff] rounded-full border border-[#00f0ff]/50 shadow-[0_0_15px_#00f0ff] relative -left-2 -top-2"></div>`,
-  iconSize: [0, 0],
-}) : null;
-
 export const createDotIcon = (color: string, severity: string, isSelected = false) => {
   if (typeof window === "undefined") return null;
   const icon = L.divIcon({

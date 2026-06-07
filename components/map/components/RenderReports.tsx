@@ -13,6 +13,7 @@ import { useWasteReports } from "@/store/firebase";
 import { getSeverityColor, createDotIcon, getRoadAuthority, clampReporterName, saveReporterName } from "@/components/utils";
 import ReportDetailSheet from "./ReportDetailSheet";
 import { useMapSelection } from "@/store/mapStore";
+import { useUI } from "@/store/uiStore";
 
 import { Button, Input, Textarea } from "@/components/base";
 
@@ -24,6 +25,14 @@ export default function RenderReports() {
     pendingDeepLinkId,
     setPendingDeepLinkId,
   } = useMapSelection();
+
+  const { activePanel, setActivePanel } = useUI();
+
+  useEffect(() => {
+    if (activePanel !== "reportDetail" && detailReportId) {
+      setDetailReportId(null);
+    }
+  }, [activePanel, detailReportId, setDetailReportId]);
 
   const { user, loginAnonymously } = useUser();
   const deleteRecord = useWasteReports((s) => s.deleteRecord);
@@ -208,7 +217,16 @@ export default function RenderReports() {
       <Popup className="futuristic-popup">
         <div className="flex flex-col gap-1 font-mono min-w-[180px] sm:min-w-[200px] bg-white/95 dark:bg-black/90 text-blue-800 dark:text-cyan-400 p-1.5 border border-blue-200 dark:border-cyan-500/30">
           <h3 className="font-bold text-[10px] uppercase tracking-widest border-b border-blue-200 dark:border-cyan-500/30 pb-0.5 m-0 flex justify-between items-center pr-4">
-            <span>Waste Detected</span>
+            <span className="flex items-center gap-1">
+              Waste Detected
+              {report.status === "verified" && (
+                <span className="inline-flex items-center text-cyan-400 shrink-0" title="AI Verified Report">
+                  <svg className="w-3.5 h-3.5 text-cyan-400 drop-shadow-[0_0_6px_rgba(6,182,212,0.6)]" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+                  </svg>
+                </span>
+              )}
+            </span>
             <div className="flex gap-2">
               {(upvoteCount > 0 || downvoteCount > 0) && (
                 <span
@@ -294,7 +312,12 @@ export default function RenderReports() {
               )}
               <div className="flex justify-between items-center mt-1">
                 <div className="flex gap-2">
-                  <span className="inline-flex items-center px-1.5 py-0.5 text-[9px] uppercase tracking-wider font-bold border border-blue-400 dark:border-cyan-500/50 text-blue-700 dark:text-cyan-400">
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] uppercase tracking-wider font-bold border border-blue-400 dark:border-cyan-500/50 text-blue-700 dark:text-cyan-400">
+                    {report.status === "verified" && (
+                      <svg className="w-3 h-3 text-cyan-400 drop-shadow-[0_0_4px_rgba(6,182,212,0.6)]" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+                      </svg>
+                    )}
                     {report.status?.toUpperCase() || "REPORTED"}
                   </span>
                   <span
@@ -656,7 +679,7 @@ export default function RenderReports() {
         })}
 
       <AnimatePresence>
-        {detailReportId && (() => {
+        {activePanel === "reportDetail" && detailReportId && (() => {
           const liveReport = reports.find((r) => r.id === detailReportId);
           if (!liveReport) return null;
           const ac = liveReport.acName ? liveReport : constituencyMap[liveReport.id];

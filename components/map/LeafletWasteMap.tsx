@@ -14,7 +14,7 @@ import { useUser } from "@/store/userStore";
 import { useWasteReports } from "@/store/firebase";
 import { useUI } from "@/store/uiStore";
 import { useReportWizard } from "@/store/reportFormStore";
-import { useMapRoute, useMapSelection } from "@/store/mapStore";
+import { useMapSelection } from "@/store/mapStore";
 
 // Sub-panels
 import ProfilePanel from "../profile/ProfilePanel";
@@ -23,7 +23,6 @@ import LeaderboardPanel from "../leaderboard/LeaderboardPanel";
 import OnboardingGuide from "../OnboardingGuide";
 
 import {
-  redMarkerIcon,
   clampToRadius,
 } from "@/components/utils";
 
@@ -31,7 +30,6 @@ import {
 import {
   ReportsMarquee,
   MapEventsHandler,
-  RouteDisplay,
   RenderReports,
   MapFlyHandler,
   ReportingOverlay,
@@ -73,12 +71,7 @@ export default function LeafletWasteMap({ initialReports }: { initialReports?: a
 
   const { activePanel, setActivePanel } = useUI();
 
-  const {
-    origin,
-    destination,
-    pointsConfirmed,
-    cancelRouteReporting,
-  } = useMapRoute();
+
 
   const {
     setPendingDeepLinkId,
@@ -144,7 +137,6 @@ export default function LeafletWasteMap({ initialReports }: { initialReports?: a
   }, [reports]);
 
   const handleCancelReporting = () => {
-    cancelRouteReporting();
     storeCancelReporting();
   };
 
@@ -207,18 +199,7 @@ export default function LeafletWasteMap({ initialReports }: { initialReports?: a
           <MapFlyHandler coords={originalExifCoords} />
         )}
 
-        {/* Current Reporting Route — only after user confirms both points */}
-        {reportingMode && origin && destination && (
-          <RouteDisplay />
-        )}
 
-        {/* Markers while picking points */}
-        {reportingMode && origin && !pointsConfirmed && redMarkerIcon && (
-          <Marker position={origin} icon={redMarkerIcon} />
-        )}
-        {reportingMode && destination && !pointsConfirmed && redMarkerIcon && (
-          <Marker position={destination} icon={redMarkerIcon} />
-        )}
 
         <ReportingOverlay />
 

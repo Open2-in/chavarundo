@@ -8,7 +8,9 @@ export type ActivePanelType =
   | "search"
   | "guide"
   | "signInPrompt"
+  | "reportDetail"
   | null;
+
 
 interface UIStoreProp {
   activePanel: ActivePanelType;

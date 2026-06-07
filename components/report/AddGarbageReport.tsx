@@ -4,14 +4,12 @@ import PhotoCaptureModal from "./PhotoCaptureModal";
 import MapAdjustmentOverlay from "./MapAdjustmentOverlay";
 import SubmitReportForm from "./SubmitReportForm";
 import AIReviewOverlay from "./AIReviewOverlay";
-import SubmitRouteForm from "./SubmitRouteForm";
 
 const REPORT_FORMS: Record<string, React.ComponentType> = {
   photoCapture: PhotoCaptureModal,
   locationAdjust: MapAdjustmentOverlay,
   detailsForm: SubmitReportForm,
   aiReview: AIReviewOverlay,
-  routeForm: SubmitRouteForm,
 };
 
 export default function AddGarbageReport() {
