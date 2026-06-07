@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { Dialog, Button } from "@/components/base";
 import { useReportWizard } from "@/store/reportFormStore";
+import { extractGPSFromJPEG } from "@/lib/exif";
 
 type PermStatus = "idle" | "requesting" | "granted" | "denied" | "error";
 type Step = "main" | "permissions" | "processing";
@@ -41,6 +42,7 @@ function detectIOS(): boolean {
 
 export default function PhotoCaptureModal() {
   const cameraInputRef       = useRef<HTMLInputElement>(null);
+  const geotagInputRef       = useRef<HTMLInputElement>(null);
   const locationPromiseRef   = useRef<Promise<{ lat: number; lng: number }> | null>(null);
   const resolvedCoordsRef    = useRef<{ lat: number; lng: number } | null>(null);
 
@@ -48,6 +50,11 @@ export default function PhotoCaptureModal() {
   const [step,       setStep]       = useState<Step>("main");
   const [locStatus,  setLocStatus]  = useState<PermStatus>("idle");
   const [camStatus,  setCamStatus]  = useState<PermStatus>("idle");
+
+  const handleUploadGeotaggedClick = () => {
+    setErrorMsg(null);
+    geotagInputRef.current?.click();
+  };
 
   const {
     exifError: errorMsg,
@@ -281,6 +288,85 @@ export default function PhotoCaptureModal() {
     }
   };
 
+  const handleGeotagPhotoChange = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setErrorMsg(null);
+    setReportImage(null);
+    setStep("processing");
+
+    try {
+      const isHeic =
+        file.type === "image/heic" ||
+        file.type === "image/heif" ||
+        file.name.toLowerCase().endsWith(".heic") ||
+        file.name.toLowerCase().endsWith(".heif");
+
+      let checkBlob: Blob = file;
+      if (isHeic) {
+        const heic2any = (await import("heic2any")).default;
+        const converted = await heic2any({ blob: file, toType: "image/jpeg", quality: 0.9 });
+        checkBlob = Array.isArray(converted) ? converted[0] : converted;
+      }
+
+      const arrayBuffer = await checkBlob.arrayBuffer();
+      const coords = extractGPSFromJPEG(arrayBuffer);
+
+      if (!coords) {
+        throw new Error("no_gps_metadata");
+      }
+
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const img    = new Image();
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          img.onload = () => {
+            const canvas = document.createElement("canvas");
+            const MAX    = 800;
+            let w = img.width, h = img.height;
+            if (w > h) { if (w > MAX) { h *= MAX / w; w = MAX; } }
+            else       { if (h > MAX) { w *= MAX / h; h = MAX; } }
+            canvas.width = w; canvas.height = h;
+            const ctx = canvas.getContext("2d");
+            if (ctx) {
+              ctx.drawImage(img, 0, 0, w, h);
+              resolve(canvas.toDataURL("image/jpeg", 0.6));
+            } else {
+              reject(new Error("canvas_error"));
+            }
+          };
+          img.onerror = () => reject(new Error("img_load"));
+          if (ev.target?.result) img.src = ev.target.result as string;
+        };
+        reader.onerror = () => reject(new Error("reader_error"));
+        reader.readAsDataURL(checkBlob);
+      });
+
+      setCoords(coords);
+      setReportImage(dataUrl);
+      setActiveReportForm("locationAdjust");
+    } catch (err: any) {
+      const msg = err?.message ?? String(err);
+      console.error("[GeotagUpload] error — message:", msg);
+
+      setStep("main");
+      if (msg === "no_gps_metadata") {
+        setErrorMsg(
+          "No GPS location metadata found in this image. Please take a live photo or upload an image with location data enabled."
+        );
+      } else if (["canvas_error", "img_load", "reader_error"].includes(msg)) {
+        setErrorMsg("Failed to read image. Please try another photo.");
+      } else {
+        setErrorMsg("Something went wrong processing the image. Please try again.");
+      }
+    } finally {
+      if (geotagInputRef.current) geotagInputRef.current.value = "";
+    }
+  };
+
   const bothGranted = locStatus === "granted" && camStatus === "granted";
 
   const locLabel = {
@@ -325,6 +411,24 @@ export default function PhotoCaptureModal() {
             <Camera className="w-6 h-6 animate-pulse" />
             <span>Open Camera</span>
           </Button>
+
+          {isIOS && (
+            <>
+              <div className="relative flex items-center justify-center my-3">
+                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-neutral-300/25"></div></div>
+                <span className="relative px-2 bg-white dark:bg-neutral-900 text-[10px] font-semibold text-neutral-400 uppercase">Or</span>
+              </div>
+
+              <Button
+                onClick={handleUploadGeotaggedClick}
+                variant="outline"
+                className="w-full py-4 border border-dashed border-emerald-500/50 hover:border-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center gap-2"
+              >
+                <MapPin className="w-4 h-4 text-emerald-500" />
+                <span className="text-[12px] font-semibold">Upload Geotagged Photo</span>
+              </Button>
+            </>
+          )}
 
           {/* Non-iOS location error recovery */}
           {!isIOS && errorMsg && (
@@ -463,6 +567,20 @@ export default function PhotoCaptureModal() {
             </span>
           </Button>
 
+          <div className="relative flex items-center justify-center my-1.5">
+            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-neutral-300/25"></div></div>
+            <span className="relative px-2 bg-white dark:bg-neutral-900 text-[10px] font-semibold text-neutral-400 uppercase">Or</span>
+          </div>
+
+          <Button
+            onClick={handleUploadGeotaggedClick}
+            variant="outline"
+            className="w-full py-3.5 border border-dashed border-emerald-500/50 hover:border-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center gap-2"
+          >
+            <MapPin className="w-4 h-4 text-emerald-500" />
+            <span className="text-[12px] font-semibold">Upload Geotagged Photo</span>
+          </Button>
+
           {/* iOS permission-step error (non-denied errors) */}
           {errorMsg && (
             <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 flex flex-col gap-1 text-center">
@@ -493,6 +611,15 @@ export default function PhotoCaptureModal() {
         capture="environment"
         className="hidden"
         onChange={handleReportPhotoChange}
+      />
+
+      {/* Hidden file input for iOS geotagged upload */}
+      <input
+        ref={geotagInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleGeotagPhotoChange}
       />
     </Dialog>
   );
