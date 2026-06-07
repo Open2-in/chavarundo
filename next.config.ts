@@ -21,6 +21,21 @@ const nextConfig: NextConfig = {
     ],
   },
   transpilePackages: ['motion'],
+  // Required for iOS Safari / PWA: explicitly permit camera & geolocation APIs.
+  // Without these headers, Safari on iPhone may silently deny permission prompts.
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=*, geolocation=*, microphone=()',
+          },
+        ],
+      },
+    ];
+  },
   webpack: (config, {dev}) => {
     // HMR is disabled in AI Studio via DISABLE_HMR env var.
     // Do not modifyâfile watching is disabled to prevent flickering during agent edits.
