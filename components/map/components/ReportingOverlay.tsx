@@ -89,21 +89,21 @@ export default function ReportingOverlay() {
                       y: -15,
                       opacity: 0,
                       filter: "blur(4px)",
-                      color: "#00f0ff",
                     }}
                     animate={{
                       y: 0,
                       opacity: 1,
                       filter: "blur(0px)",
-                      color: "currentColor",
                     }}
                     exit={{
                       y: 15,
                       opacity: 0,
                       filter: "blur(4px)",
-                      color: "#00f0ff",
                     }}
-                    transition={{ duration: 0.5, type: "spring", bounce: 0.4 }}
+                    transition={{
+                      default: { type: "spring", bounce: 0.4, duration: 0.5 },
+                      filter: { type: "tween", ease: "easeOut", duration: 0.3 },
+                    }}
                     className="inline-block"
                   >
                     {reportsCount}

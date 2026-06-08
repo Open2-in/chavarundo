@@ -7,4 +7,6 @@ export { default as ReportDetailSheet } from "./ReportDetailSheet";
 export { default as ReportingOverlay } from "./ReportingOverlay";
 export { default as ReportsMarquee } from "./ReportsMarquee";
 export { default as IndiaBoundaryCorrectedTileLayer } from "./IndiaBoundaryCorrectedTileLayer";
+export { default as SeoAboutModal } from "./SeoAboutModal";
+
 

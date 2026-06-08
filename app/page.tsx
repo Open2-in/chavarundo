@@ -1,5 +1,6 @@
 import MapLoader from "@/components/MapLoader";
 import { getRecentReports } from "@/lib/firebase-server";
+import SeoAboutModal from "@/components/map/components/SeoAboutModal";
 
 // ISR: regenerate every 60 seconds so initial map data stays fresh.
 // onSnapshot handles real-time updates after hydration anyway.
@@ -17,8 +18,9 @@ export default async function Home() {
         <MapLoader initialReports={initialReports} />
       </div>
 
-      {/* Server-rendered content for SEO — visible on scroll */}
-      <section id="seo-content" className="bg-white dark:bg-black text-black dark:text-white font-mono px-6 py-16 max-w-3xl mx-auto">
+      {/* Server-rendered content for SEO — wrapped in a visually hidden modal until toggled */}
+      <SeoAboutModal>
+        <section id="seo-content" className="bg-white dark:bg-black text-black dark:text-white font-mono px-6 py-16 max-w-3xl mx-auto">
         <h1 className="text-2xl font-bold text-blue-700 dark:text-cyan-400 mb-4">
           Chavarundo — Community Public Waste & Garbage Tracker for Kerala
         </h1>
@@ -110,6 +112,7 @@ export default async function Home() {
 
         </div>
       </section>
+      </SeoAboutModal>
     </main>
   );
 }
