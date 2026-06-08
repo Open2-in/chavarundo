@@ -34,6 +34,7 @@ import {
   MapFlyHandler,
   ReportingOverlay,
   MapSearch,
+  IndiaBoundaryCorrectedTileLayer,
 } from "./components";
 
 import {
@@ -159,7 +160,7 @@ export default function LeafletWasteMap({ initialReports }: { initialReports?: a
         zoomControl={false}
       >
         {mounted && (
-          <TileLayer
+          <IndiaBoundaryCorrectedTileLayer
             key={resolvedTheme}
             className={resolvedTheme === 'light' ? "light-map-tiles" : "dark-map-tiles"}
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

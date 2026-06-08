@@ -6,3 +6,5 @@ export { default as RenderReports } from "./RenderReports";
 export { default as ReportDetailSheet } from "./ReportDetailSheet";
 export { default as ReportingOverlay } from "./ReportingOverlay";
 export { default as ReportsMarquee } from "./ReportsMarquee";
+export { default as IndiaBoundaryCorrectedTileLayer } from "./IndiaBoundaryCorrectedTileLayer";
+
