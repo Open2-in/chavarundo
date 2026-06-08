@@ -21,6 +21,7 @@ const nextConfig: NextConfig = {
     ],
   },
   transpilePackages: ['motion'],
+  compress: true,
   // Required for iOS Safari / PWA: explicitly permit camera & geolocation APIs.
   // Without these headers, Safari on iPhone may silently deny permission prompts.
   async headers() {
@@ -31,6 +32,15 @@ const nextConfig: NextConfig = {
           {
             key: 'Permissions-Policy',
             value: 'camera=*, geolocation=*, microphone=()',
+          },
+        ],
+      },
+      {
+        source: '/leaflet/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
           },
         ],
       },

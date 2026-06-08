@@ -3,10 +3,10 @@ import { Inter, JetBrains_Mono, Caveat, Anek_Malayalam } from 'next/font/google'
 import './globals.css'; // Global styles
 import { ThemeProvider } from '@/components/ThemeProvider';
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
-const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-mono' });
-const caveat = Caveat({ subsets: ['latin'], variable: '--font-handwriting' });
-const anekMalayalam = Anek_Malayalam({ subsets: ['malayalam'], variable: '--font-malayalam' });
+const inter = Inter({ subsets: ['latin'], variable: '--font-sans', display: 'swap' });
+const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-mono', display: 'swap' });
+const caveat = Caveat({ subsets: ['latin'], variable: '--font-handwriting', display: 'swap' });
+const anekMalayalam = Anek_Malayalam({ subsets: ['malayalam'], variable: '--font-malayalam', display: 'swap' });
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -83,6 +83,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning className={`${inter.variable} ${jetbrainsMono.variable} ${caveat.variable} ${anekMalayalam.variable}`}>
       <head>
+        <link rel="preconnect" href="https://a.tile.openstreetmap.org" />
+        <link rel="preconnect" href="https://b.tile.openstreetmap.org" />
+        <link rel="preconnect" href="https://c.tile.openstreetmap.org" />
+        <link rel="dns-prefetch" href="https://firestore.googleapis.com" />
+        <link rel="dns-prefetch" href="https://www.clarity.ms" />
+        <meta name="theme-color" content="#0f172a" />
         <script dangerouslySetInnerHTML={{ __html: `(function(){try{var t=localStorage.getItem('theme');if(t==='light'){document.documentElement.classList.remove('dark')}else{document.documentElement.classList.add('dark')}}catch(e){}})()` }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       </head>

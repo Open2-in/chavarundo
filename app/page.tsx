@@ -8,7 +8,7 @@ export const revalidate = 60;
 export default async function Home() {
   // Pre-fetch recent reports server-side so the map has data on first paint.
   // onSnapshot in LeafletWasteMap takes over with live updates after hydration.
-  const initialReports = await getRecentReports(200);
+  const initialReports = await getRecentReports(50);
 
   return (
     <main>
