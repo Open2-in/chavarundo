@@ -9,6 +9,7 @@ export type ActivePanelType =
   | "guide"
   | "signInPrompt"
   | "reportDetail"
+  | "about"
   | null;
 
 

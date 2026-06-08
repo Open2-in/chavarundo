@@ -6,7 +6,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "leaflet.markercluster/dist/MarkerCluster.css";
 import "leaflet.markercluster/dist/MarkerCluster.Default.css";
-import { Sun, Moon, Plus, Trophy, UserCircle, Search, HelpCircle } from "lucide-react";
+import { Sun, Moon, Plus, Trophy, UserCircle, Search, HelpCircle, Info } from "lucide-react";
 import { useTheme } from "next-themes";
 
 import { initClarity } from "@/lib/clarity";
@@ -34,6 +34,7 @@ import {
   MapFlyHandler,
   ReportingOverlay,
   MapSearch,
+  IndiaBoundaryCorrectedTileLayer,
 } from "./components";
 
 import {
@@ -41,18 +42,16 @@ import {
   AddGarbageReport,
 } from "@/components/report";
 
-// Fix default marker icon issues in Leaflet
+// Fix default marker icon issues in Leaflet using local assets
 if (typeof window !== "undefined") {
   delete (L.Icon.Default.prototype as any)._getIconUrl;
   L.Icon.Default.mergeOptions({
-    iconRetinaUrl:
-      "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
-    iconUrl:
-      "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
-    shadowUrl:
-      "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+    iconRetinaUrl: "/leaflet/marker-icon-2x.png",
+    iconUrl: "/leaflet/marker-icon.png",
+    shadowUrl: "/leaflet/marker-shadow.png",
   });
 }
+
 
 
 export default function LeafletWasteMap({ initialReports }: { initialReports?: any[] }) {
@@ -101,7 +100,17 @@ export default function LeafletWasteMap({ initialReports }: { initialReports?: a
   // Reporting state
   const reportingMode = activeReportForm !== null;
 
-  useEffect(() => { initClarity(); }, []);
+  useEffect(() => {
+    // Defer Clarity analytics to free up main thread for faster map rendering
+    if (typeof window !== "undefined") {
+      const runClarity = () => initClarity();
+      if ('requestIdleCallback' in window) {
+        (window as any).requestIdleCallback(runClarity, { timeout: 3000 });
+      } else {
+        setTimeout(runClarity, 3000);
+      }
+    }
+  }, []);
 
   // Keep --app-height in sync with the actual visible viewport
   useEffect(() => {
@@ -151,7 +160,7 @@ export default function LeafletWasteMap({ initialReports }: { initialReports?: a
         zoomControl={false}
       >
         {mounted && (
-          <TileLayer
+          <IndiaBoundaryCorrectedTileLayer
             key={resolvedTheme}
             className={resolvedTheme === 'light' ? "light-map-tiles" : "dark-map-tiles"}
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -276,6 +285,17 @@ export default function LeafletWasteMap({ initialReports }: { initialReports?: a
             title="How it Works"
           >
             <HelpCircle className="w-5 h-5" />
+          </button>
+          {/* About */}
+          <button
+            onClick={() => setActivePanel(activePanel === 'about' ? null : 'about')}
+            className={`p-2 bg-white/90 dark:bg-black/90 border rounded shadow-md transition-all ${activePanel === 'about'
+              ? "border-blue-400 dark:border-cyan-400 text-blue-600 dark:text-cyan-400 bg-blue-50 dark:bg-cyan-900/30 shadow-[0_0_12px_rgba(0,100,255,0.25)] dark:shadow-[0_0_12px_rgba(0,255,255,0.25)]"
+              : "border-neutral-200 dark:border-cyan-500/30 text-blue-600 dark:text-cyan-400 hover:bg-blue-50 dark:hover:bg-cyan-900/30 hover:shadow-[0_0_12px_rgba(0,100,255,0.2)] dark:hover:shadow-[0_0_12px_rgba(0,255,255,0.2)]"
+              }`}
+            title="About Chavarundo"
+          >
+            <Info className="w-5 h-5" />
           </button>
           <button
             onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}

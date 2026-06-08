@@ -9,6 +9,27 @@ import {
 import { getFirestore } from "firebase/firestore";
 import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
 import { getAnalytics, isSupported } from "firebase/analytics";
+
+// Suppress noisy third-party console logs in development
+if (typeof window !== "undefined") {
+  const originalLog = console.log;
+  const originalInfo = console.info;
+
+  const filterLogs = (args: any[], originalFn: (...args: any[]) => void) => {
+    if (
+      typeof args[0] === "string" &&
+      (args[0].includes("App Check debug token") ||
+       args[0].includes("Download the React DevTools"))
+    ) {
+      return;
+    }
+    originalFn(...args);
+  };
+
+  console.log = (...args) => filterLogs(args, originalLog);
+  console.info = (...args) => filterLogs(args, originalInfo);
+}
+
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,

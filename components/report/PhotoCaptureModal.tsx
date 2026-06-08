@@ -253,7 +253,6 @@ export default function PhotoCaptureModal() {
     } catch (err: any) {
       const code = err?.code ?? null;
       const msg  = err?.message ?? String(err);
-      console.error("[PhotoCapture] error — code:", code, "message:", msg);
 
       if (["canvas_error", "img_load", "reader_error"].includes(msg)) {
         // Image error — back to main (both platforms)
@@ -350,7 +349,6 @@ export default function PhotoCaptureModal() {
       setActiveReportForm("locationAdjust");
     } catch (err: any) {
       const msg = err?.message ?? String(err);
-      console.error("[GeotagUpload] error — message:", msg);
 
       setStep("main");
       if (msg === "no_gps_metadata") {
