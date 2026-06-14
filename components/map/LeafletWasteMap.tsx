@@ -40,6 +40,7 @@ import {
 import {
   SignInToReportModal,
   AddGarbageReport,
+  VerifyCleanupModal,
 } from "@/components/report";
 
 // Fix default marker icon issues in Leaflet using local assets
@@ -77,6 +78,7 @@ export default function LeafletWasteMap({ initialReports }: { initialReports?: a
     profileSubject,
     setProfileSubject,
     authoritySubject,
+    setVerifyCleanupReportId,
   } = useMapSelection();
 
   useEffect(() => {
@@ -137,13 +139,17 @@ export default function LeafletWasteMap({ initialReports }: { initialReports?: a
     if (!deepLinkHandled.current && reports.length > 0) {
       const params = new URLSearchParams(window.location.search);
       const id = params.get("id");
+      const action = params.get("action");
       if (id && reports.some((r) => r.id === id)) {
         deepLinkHandled.current = true;
         setPendingDeepLinkId(id);
+        if (action === "cleanup") {
+          setVerifyCleanupReportId(id);
+        }
         window.history.replaceState({}, "", window.location.pathname);
       }
     }
-  }, [reports]);
+  }, [reports, setPendingDeepLinkId, setVerifyCleanupReportId]);
 
   const handleCancelReporting = () => {
     storeCancelReporting();
@@ -151,11 +157,12 @@ export default function LeafletWasteMap({ initialReports }: { initialReports?: a
 
 
   return (
-    <div className="relative w-full h-app bg-neutral-100 dark:bg-neutral-900 overflow-hidden">
+    <>
+      <div className="relative w-full h-app bg-slate-50 dark:bg-neutral-900 overflow-hidden">
       <MapContainer
         center={[10.8505, 76.2711]}
         zoom={7}
-        style={{ width: "100%", height: "100%", background: mounted && resolvedTheme === 'light' ? '#f1f5f9' : '#0f172a' }}
+        style={{ width: "100%", height: "100%", background: mounted && resolvedTheme === 'light' ? '#ecfdf5' : '#0f172a' }}
         attributionControl={false}
         zoomControl={false}
       >
@@ -179,8 +186,8 @@ export default function LeafletWasteMap({ initialReports }: { initialReports?: a
             center={[originalExifCoords.lat, originalExifCoords.lng]}
             radius={30}
             pathOptions={{
-              color: "#00f0ff",
-              fillColor: "#00f0ff",
+              color: resolvedTheme === 'light' ? "#10b981" : "#00f0ff",
+              fillColor: resolvedTheme === 'light' ? "#10b981" : "#00f0ff",
               fillOpacity: 0.15,
               weight: 2,
               dashArray: "5, 5",
@@ -211,11 +218,10 @@ export default function LeafletWasteMap({ initialReports }: { initialReports?: a
 
 
         <ReportingOverlay />
-
         <MapSearch isOpen={activePanel === 'search'} onClose={() => setActivePanel(null)} />
       </MapContainer>
-
       <AddGarbageReport />
+      <VerifyCleanupModal />
       {/* Control buttons — outside MapContainer for reliable rendering */}
       {mounted && (
         <div className="absolute bottom-16 right-4 z-[1000] flex flex-col gap-2">
@@ -231,7 +237,7 @@ export default function LeafletWasteMap({ initialReports }: { initialReports?: a
                   setActivePanel('signInPrompt');
                 }
               }}
-              className="relative p-2 bg-white/90 dark:bg-black/90 border border-neutral-200 dark:border-cyan-500/30 rounded shadow-md text-blue-600 dark:text-cyan-400 hover:bg-blue-50 dark:hover:bg-cyan-900/30 hover:shadow-[0_0_12px_rgba(0,100,255,0.3)] dark:hover:shadow-[0_0_12px_rgba(0,255,255,0.3)] transition-all"
+              className="relative p-2 bg-white/90 dark:bg-black/90 border border-neutral-200 dark:border-cyan-500/30 rounded shadow-md text-gray-900 dark:text-cyan-400 hover:bg-slate-50 dark:hover:bg-cyan-900/30 hover:shadow-[0_0_12px_rgba(0,100,255,0.3)] dark:hover:shadow-[0_0_12px_rgba(0,255,255,0.3)] transition-all"
               title="Report Waste"
             >
               <Plus className="w-5 h-5" />
@@ -263,7 +269,7 @@ export default function LeafletWasteMap({ initialReports }: { initialReports?: a
                   referrerPolicy="no-referrer"
                 />
               ) : (
-                <UserCircle className="w-5 h-5 text-blue-600 dark:text-cyan-400" />
+                <UserCircle className="w-5 h-5 text-gray-900 dark:text-cyan-400" />
               )}
             </button>
           )}
@@ -271,8 +277,8 @@ export default function LeafletWasteMap({ initialReports }: { initialReports?: a
           <button
             onClick={() => setActivePanel(activePanel === 'search' ? null : 'search')}
             className={`p-2 bg-white/90 dark:bg-black/90 border rounded shadow-md transition-all ${activePanel === 'search'
-              ? "border-blue-400 dark:border-cyan-400 text-blue-600 dark:text-cyan-400 bg-blue-50 dark:bg-cyan-900/30 shadow-[0_0_12px_rgba(0,100,255,0.25)] dark:shadow-[0_0_12px_rgba(0,255,255,0.25)]"
-              : "border-neutral-200 dark:border-cyan-500/30 text-blue-600 dark:text-cyan-400 hover:bg-blue-50 dark:hover:bg-cyan-900/30 hover:shadow-[0_0_12px_rgba(0,100,255,0.2)] dark:hover:shadow-[0_0_12px_rgba(0,255,255,0.2)]"
+              ? "border-emerald-400 dark:border-cyan-400 text-gray-900 dark:text-cyan-400 bg-slate-50 dark:bg-cyan-900/30 shadow-[0_0_12px_rgba(0,100,255,0.25)] dark:shadow-[0_0_12px_rgba(0,255,255,0.25)]"
+              : "border-neutral-200 dark:border-cyan-500/30 text-gray-900 dark:text-cyan-400 hover:bg-slate-50 dark:hover:bg-cyan-900/30 hover:shadow-[0_0_12px_rgba(0,100,255,0.2)] dark:hover:shadow-[0_0_12px_rgba(0,255,255,0.2)]"
               }`}
             title="Search Location"
           >
@@ -290,8 +296,8 @@ export default function LeafletWasteMap({ initialReports }: { initialReports?: a
           <button
             onClick={() => setActivePanel(activePanel === 'about' ? null : 'about')}
             className={`p-2 bg-white/90 dark:bg-black/90 border rounded shadow-md transition-all ${activePanel === 'about'
-              ? "border-blue-400 dark:border-cyan-400 text-blue-600 dark:text-cyan-400 bg-blue-50 dark:bg-cyan-900/30 shadow-[0_0_12px_rgba(0,100,255,0.25)] dark:shadow-[0_0_12px_rgba(0,255,255,0.25)]"
-              : "border-neutral-200 dark:border-cyan-500/30 text-blue-600 dark:text-cyan-400 hover:bg-blue-50 dark:hover:bg-cyan-900/30 hover:shadow-[0_0_12px_rgba(0,100,255,0.2)] dark:hover:shadow-[0_0_12px_rgba(0,255,255,0.2)]"
+              ? "border-emerald-400 dark:border-cyan-400 text-gray-900 dark:text-cyan-400 bg-slate-50 dark:bg-cyan-900/30 shadow-[0_0_12px_rgba(0,100,255,0.25)] dark:shadow-[0_0_12px_rgba(0,255,255,0.25)]"
+              : "border-neutral-200 dark:border-cyan-500/30 text-gray-900 dark:text-cyan-400 hover:bg-slate-50 dark:hover:bg-cyan-900/30 hover:shadow-[0_0_12px_rgba(0,100,255,0.2)] dark:hover:shadow-[0_0_12px_rgba(0,255,255,0.2)]"
               }`}
             title="About Chavarundo"
           >
@@ -299,7 +305,7 @@ export default function LeafletWasteMap({ initialReports }: { initialReports?: a
           </button>
           <button
             onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
-            className="p-2 bg-white/90 dark:bg-black/90 border border-neutral-200 dark:border-cyan-500/30 rounded shadow-md text-blue-700 dark:text-cyan-400 hover:bg-neutral-100 dark:hover:bg-blue-100/40 dark:bg-cyan-900/40 transition-all"
+            className="p-2 bg-white/90 dark:bg-black/90 border border-neutral-200 dark:border-cyan-500/30 rounded shadow-md text-gray-900 dark:text-cyan-400 hover:bg-slate-50 dark:hover:bg-slate-100/40 dark:bg-cyan-900/40 transition-all"
             title="Toggle Theme"
           >
             {resolvedTheme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
@@ -336,7 +342,8 @@ export default function LeafletWasteMap({ initialReports }: { initialReports?: a
         }}
       />
 
-
     </div>
+    <VerifyCleanupModal />
+  </>
   );
 }

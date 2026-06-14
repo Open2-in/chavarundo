@@ -96,7 +96,7 @@ export default function LeaderboardPanel() {
         return <Medal className="w-5 h-5 text-amber-600 drop-shadow-[0_0_6px_rgba(217,119,6,0.5)]" />;
       default:
         return (
-          <span className="w-5 h-5 flex items-center justify-center text-[11px] font-bold text-blue-400 dark:text-cyan-500/70 tabular-nums">
+          <span className="w-5 h-5 flex items-center justify-center text-[11px] font-bold text-gray-500 dark:text-cyan-500/70 tabular-nums">
             #{index + 1}
           </span>
         );
@@ -112,7 +112,7 @@ export default function LeaderboardPanel() {
       case 2:
         return "border-amber-600/50 bg-amber-600/5 dark:bg-amber-600/10";
       default:
-        return "border-blue-200/30 dark:border-cyan-500/20";
+        return "border-gray-200/30 dark:border-cyan-500/20";
     }
   };
 
@@ -124,36 +124,36 @@ export default function LeaderboardPanel() {
           title="Leaderboard"
           icon={<Trophy className="w-5 h-5 text-yellow-500 dark:text-yellow-400 drop-shadow-[0_0_8px_rgba(234,179,8,0.5)]" />}
           footer={
-            <p className="text-[9px] uppercase tracking-widest text-blue-400/60 dark:text-cyan-500/40 text-center py-2.5">
+            <p className="text-[9px] uppercase tracking-widest text-gray-500 dark:text-cyan-500/40 text-center py-2.5">
               Ranked by reports + net votes • Updated live
             </p>
           }
         >
           {/* Stats Bar */}
-          <div className="flex items-center justify-around px-4 py-2 border-b border-blue-200/50 dark:border-cyan-500/20 bg-blue-50/30 dark:bg-cyan-950/30">
+          <div className="flex items-center justify-around px-4 py-2 border-b border-gray-200/50 dark:border-cyan-500/20 bg-slate-50 dark:bg-cyan-950/30">
             <div className="flex flex-col items-center">
-              <span className="text-lg font-bold text-blue-700 dark:text-cyan-400 tabular-nums">
+              <span className="text-lg font-bold text-gray-900 dark:text-cyan-400 tabular-nums">
                 {reports.length}
               </span>
-              <span className="text-[9px] uppercase tracking-widest text-blue-500/70 dark:text-cyan-500/50">
+              <span className="text-[9px] uppercase tracking-widest text-gray-700 dark:text-cyan-500/50">
                 Reports
               </span>
             </div>
-            <div className="w-px h-8 bg-blue-200/50 dark:bg-cyan-500/20" />
+            <div className="w-px h-8 bg-emerald-200/50 dark:bg-cyan-500/20" />
             <div className="flex flex-col items-center">
-              <span className="text-lg font-bold text-blue-700 dark:text-cyan-400 tabular-nums">
+              <span className="text-lg font-bold text-gray-900 dark:text-cyan-400 tabular-nums">
                 {leaderboard.length}
               </span>
-              <span className="text-[9px] uppercase tracking-widest text-blue-500/70 dark:text-cyan-500/50">
+              <span className="text-[9px] uppercase tracking-widest text-gray-700 dark:text-cyan-500/50">
                 Contributors
               </span>
             </div>
-            <div className="w-px h-8 bg-blue-200/50 dark:bg-cyan-500/20" />
+            <div className="w-px h-8 bg-emerald-200/50 dark:bg-cyan-500/20" />
             <div className="flex flex-col items-center">
-              <span className="text-lg font-bold text-blue-700 dark:text-cyan-400 tabular-nums">
+              <span className="text-lg font-bold text-gray-900 dark:text-cyan-400 tabular-nums">
                 {totalUpvotes}
               </span>
-              <span className="text-[9px] uppercase tracking-widest text-blue-500/70 dark:text-cyan-500/50">
+              <span className="text-[9px] uppercase tracking-widest text-gray-700 dark:text-cyan-500/50">
                 Upvotes
               </span>
             </div>
@@ -162,7 +162,7 @@ export default function LeaderboardPanel() {
           {/* Leaderboard List */}
           <div className="px-3 py-2 space-y-1.5">
             {leaderboard.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 text-blue-400 dark:text-cyan-500/50">
+              <div className="flex flex-col items-center justify-center py-20 text-gray-500 dark:text-cyan-500/50">
                 <Flag className="w-8 h-8 mb-2 opacity-50" />
                 <span className="text-xs uppercase tracking-widest">
                   No reports yet
@@ -194,10 +194,10 @@ export default function LeaderboardPanel() {
                       src={entry.userPhotoURL}
                       alt={entry.userName}
                       referrerPolicy="no-referrer"
-                      className="shrink-0 w-8 h-8 rounded-full border border-blue-300/60 dark:border-cyan-500/40 object-cover"
+                      className="shrink-0 w-8 h-8 rounded-full border border-gray-300/60 dark:border-cyan-500/40 object-cover"
                     />
                   ) : (
-                    <div className="shrink-0 w-8 h-8 rounded-full border border-blue-300/60 dark:border-cyan-500/40 bg-blue-100 dark:bg-cyan-900/50 flex items-center justify-center text-[10px] font-bold text-blue-500 dark:text-cyan-400">
+                    <div className="shrink-0 w-8 h-8 rounded-full border border-gray-300/60 dark:border-cyan-500/40 bg-slate-100 dark:bg-cyan-900/50 flex items-center justify-center text-[10px] font-bold text-gray-700 dark:text-cyan-400">
                       {getInitials(entry.userName)}
                     </div>
                   )}
@@ -207,22 +207,22 @@ export default function LeaderboardPanel() {
                     <div className="flex items-center gap-1.5">
                       <span
                         className={`text-xs font-bold truncate ${index === 0
-                          ? "text-yellow-600 dark:text-yellow-400"
-                          : "text-blue-800 dark:text-cyan-300"
+                          ? "text-amber-800 dark:text-yellow-400"
+                          : "text-gray-900 dark:text-cyan-300"
                           }`}
                       >
                         {entry.userName}
                       </span>
                     </div>
                     <div className="flex items-center gap-3 mt-0.5">
-                      <span className="text-[10px] uppercase tracking-wider text-blue-500/70 dark:text-cyan-500/50 flex items-center gap-1">
+                      <span className="text-[10px] uppercase tracking-wider text-gray-700 dark:text-cyan-500/50 flex items-center gap-1">
                         <Flag className="w-3 h-3" />
                         {entry.reportCount} report{entry.reportCount !== 1 ? "s" : ""}
                       </span>
                       <span
                         className={`text-[10px] uppercase tracking-wider flex items-center gap-1 ${entry.netVotes >= 0
-                          ? "text-green-600 dark:text-green-400/70"
-                          : "text-red-500 dark:text-red-400/70"
+                          ? "text-green-700 dark:text-green-400/70"
+                          : "text-red-600 dark:text-red-400/70"
                           }`}
                       >
                         <ThumbsUp className="w-3 h-3" />
@@ -236,17 +236,17 @@ export default function LeaderboardPanel() {
                   <div className="shrink-0 flex flex-col items-center">
                     <span
                       className={`text-base font-bold tabular-nums ${index === 0
-                        ? "text-yellow-500 dark:text-yellow-400"
+                        ? "text-amber-800 dark:text-yellow-400"
                         : index === 1
-                          ? "text-gray-400 dark:text-gray-300"
+                          ? "text-gray-500 dark:text-gray-300"
                           : index === 2
-                            ? "text-amber-600 dark:text-amber-500"
-                            : "text-blue-600 dark:text-cyan-400"
+                            ? "text-amber-700 dark:text-amber-500"
+                            : "text-gray-900 dark:text-cyan-400"
                         }`}
                     >
                       {entry.score}
                     </span>
-                    <span className="text-[8px] uppercase tracking-widest text-blue-400/60 dark:text-cyan-500/40">
+                    <span className="text-[8px] uppercase tracking-widest text-gray-500 dark:text-cyan-500/40">
                       pts
                     </span>
                   </div>

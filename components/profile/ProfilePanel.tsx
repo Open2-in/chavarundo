@@ -76,15 +76,15 @@ export default function ProfilePanel() {
       : displayName;
 
   const sheetIcon = view === "profile" ? (
-    <User className="w-5 h-5 text-blue-600 dark:text-cyan-400" />
+    <User className="w-5 h-5 text-gray-900 dark:text-cyan-400" />
   ) : (
-    <FileText className="w-5 h-5 text-blue-600 dark:text-cyan-400" />
+    <FileText className="w-5 h-5 text-gray-900 dark:text-cyan-400" />
   );
 
   const headerRight = view === "contributions" && (
     <button
       onClick={() => setView("profile")}
-      className="px-2 py-1 rounded text-[10px] font-mono font-bold uppercase tracking-wider text-blue-500 dark:text-cyan-500 hover:bg-blue-100 dark:hover:bg-cyan-900/40 transition-colors"
+      className="px-2 py-1 rounded text-[10px] font-mono font-bold uppercase tracking-wider text-gray-700 dark:text-cyan-500 hover:bg-slate-100 dark:hover:bg-cyan-900/40 transition-colors"
     >
       ← Back
     </button>
@@ -130,30 +130,30 @@ export default function ProfilePanel() {
               <ActivityDetails stats={stats} />
 
               {/* Contributions button */}
-              <div className="px-4 py-3 border-t border-blue-200/50 dark:border-cyan-500/20">
+              <div className="px-4 py-3 border-t border-gray-200/50 dark:border-cyan-500/20">
                 <button
                   onClick={() => setView("contributions")}
-                  className="w-full flex items-center justify-between gap-2 px-3 py-3 text-[11px] font-bold uppercase tracking-widest font-mono text-blue-700 dark:text-cyan-400 bg-blue-50 dark:bg-cyan-950/40 border border-blue-200 dark:border-cyan-500/30 rounded-lg hover:bg-blue-100 dark:hover:bg-cyan-900/40 hover:border-blue-300 dark:hover:border-cyan-500/50 hover:shadow-[0_0_12px_rgba(0,100,255,0.1)] dark:hover:shadow-[0_0_12px_rgba(0,255,255,0.1)] transition-all group"
+                  className="w-full flex items-center justify-between gap-2 px-3 py-3 text-[11px] font-bold uppercase tracking-widest font-mono text-gray-900 dark:text-cyan-400 bg-slate-50 dark:bg-cyan-950/40 border border-gray-200 dark:border-cyan-500/30 rounded-lg hover:bg-slate-100 dark:hover:bg-cyan-900/40 hover:border-gray-300 dark:hover:border-cyan-500/50 hover:shadow-[0_0_12px_rgba(0,100,255,0.1)] dark:hover:shadow-[0_0_12px_rgba(0,255,255,0.1)] transition-all group"
                 >
                   <div className="flex items-center gap-2">
                     <FileText className="w-4 h-4" />
                     <span>{isOwnProfile ? "My Contributions" : "Contributions"}</span>
-                    <span className="text-[9px] font-normal normal-case px-1.5 py-0.5 rounded bg-blue-200/50 dark:bg-cyan-800/40 text-blue-600 dark:text-cyan-400 tabular-nums">
+                    <span className="text-[9px] font-normal normal-case px-1.5 py-0.5 rounded bg-cyan-500/15 dark:bg-cyan-800/40 text-gray-900 dark:text-cyan-400 tabular-nums">
                       {myReports.length}
                     </span>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-blue-400 dark:text-cyan-500/50 group-hover:translate-x-0.5 transition-transform" />
+                  <ChevronRight className="w-4 h-4 text-gray-500 dark:text-cyan-500/50 group-hover:translate-x-0.5 transition-transform" />
                 </button>
               </div>
 
               {/* Empty state */}
               {stats.totalReports === 0 && (
                 <div className="px-4 py-8 flex flex-col items-center text-center font-mono">
-                  <Flag className="w-10 h-10 text-blue-300 dark:text-cyan-500/30 mb-3" />
-                  <div className="text-xs text-blue-600 dark:text-cyan-400 font-bold uppercase tracking-widest mb-1">
+                  <Flag className="w-10 h-10 text-cyan-500/30 dark:text-cyan-500/30 mb-3" />
+                  <div className="text-xs text-gray-900 dark:text-cyan-400 font-bold uppercase tracking-widest mb-1">
                     No reports yet
                   </div>
-                  <div className="text-[10px] text-blue-400/70 dark:text-cyan-500/40 max-w-[220px]">
+                  <div className="text-[10px] text-gray-500 dark:text-cyan-500/40 max-w-[220px]">
                     {isOwnProfile
                       ? "Start reporting road waste on the map to see your stats here!"
                       : "This contributor hasn't reported any road waste yet."}

@@ -10,8 +10,9 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { Dialog, Button } from "@/components/base";
-import { useReportWizard } from "@/store/reportFormStore";
 import { extractGPSFromJPEG } from "@/lib/exif";
+import { useMapSelection } from "@/store/mapStore";
+import { useWasteReports } from "@/store/firebase";
 
 type PermStatus = "idle" | "requesting" | "granted" | "denied" | "error";
 type Step = "main" | "permissions" | "processing";
@@ -23,15 +24,14 @@ function PermIcon({ status }: { status: PermStatus }) {
     return <X className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0" />;
   if (status === "requesting") {
     return <Loader2 className="w-4 h-4 text-teal-600 dark:text-cyan-400 animate-spin shrink-0" />;
-  }if (status === "error")
+  }
+  if (status === "error")
     return <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />;
   return (
     <div className="w-4 h-4 rounded-full border-2 border-neutral-500 shrink-0" />
   );
 }
 
-// Detect iOS (iPhone, iPad, iPod).
-// iPad on iOS 13+ reports MacIntel + touchPoints > 1.
 function detectIOS(): boolean {
   if (typeof navigator === "undefined") return false;
   return (
@@ -40,7 +40,10 @@ function detectIOS(): boolean {
   );
 }
 
-export default function PhotoCaptureModal() {
+export default function VerifyCleanupModal() {
+  const { verifyCleanupReportId, setVerifyCleanupReportId } = useMapSelection();
+  const editRecord = useWasteReports((s) => s.editRecord);
+
   const cameraInputRef       = useRef<HTMLInputElement>(null);
   const geotagInputRef       = useRef<HTMLInputElement>(null);
   const locationPromiseRef   = useRef<Promise<{ lat: number; lng: number }> | null>(null);
@@ -50,34 +53,26 @@ export default function PhotoCaptureModal() {
   const [step,       setStep]       = useState<Step>("main");
   const [locStatus,  setLocStatus]  = useState<PermStatus>("idle");
   const [camStatus,  setCamStatus]  = useState<PermStatus>("idle");
+  const [errorMsg,   setErrorMsg]   = useState<string | null>(null);
+
+  useEffect(() => {
+    setIsIOS(detectIOS());
+  }, []);
+
+  if (!verifyCleanupReportId) return null;
+
+  const cancelVerification = () => {
+    setVerifyCleanupReportId(null);
+  };
 
   const handleUploadGeotaggedClick = () => {
     setErrorMsg(null);
     geotagInputRef.current?.click();
   };
 
-  const {
-    exifError: errorMsg,
-    setExifError: setErrorMsg,
-    setReportImage,
-    setActiveReportForm,
-    setCoords,
-    cancelReporting,
-  } = useReportWizard();
-
-  useEffect(() => {
-    setIsIOS(detectIOS());
-  }, []);
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // NON-iOS (Android, Desktop): simple direct flow
-  // Location fetch + input.click() both fire synchronously in one gesture.
-  // The browser/OS handles permission dialogs on its own.
-  // ─────────────────────────────────────────────────────────────────────────
   const handleDirectCamera = () => {
     setErrorMsg(null);
 
-    // Start geolocation in the background
     const geo = new Promise<{ lat: number; lng: number }>((resolve, reject) =>
       navigator.geolocation.getCurrentPosition(
         (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
@@ -85,20 +80,12 @@ export default function PhotoCaptureModal() {
         { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
       )
     );
-    // Suppress unhandled-rejection if geo fails before the user picks a photo
     geo.catch(() => {});
     locationPromiseRef.current = geo;
 
-    // Open camera/photo picker immediately (synchronous user gesture ✓)
     cameraInputRef.current?.click();
   };
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // iOS: Permission checklist flow
-  // navigator.permissions.query() is intentionally NOT used — it returns
-  // incorrect results on iOS (especially over HTTP).
-  // We call the actual APIs (getCurrentPosition / getUserMedia) directly.
-  // ─────────────────────────────────────────────────────────────────────────
   const handleShowPermissions = () => {
     setErrorMsg(null);
     resolvedCoordsRef.current  = null;
@@ -127,7 +114,6 @@ export default function PhotoCaptureModal() {
       },
       (err) => {
         if (err.code === 1) {
-          // Permanently denied — iOS will not re-prompt
           setLocStatus("denied");
         } else {
           setLocStatus("error");
@@ -145,7 +131,6 @@ export default function PhotoCaptureModal() {
   const handleAllowCamera = async () => {
     setErrorMsg(null);
     if (!navigator.mediaDevices?.getUserMedia) {
-      // Very old browser — <input capture> handles camera natively
       setCamStatus("granted");
       return;
     }
@@ -167,8 +152,6 @@ export default function PhotoCaptureModal() {
     }
   };
 
-  // Called from the green "Open Camera" button after both permissions granted (iOS).
-  // MUST be synchronous — iOS Safari blocks input.click() inside async callbacks.
   const handleProceedToCamera = () => {
     setErrorMsg(null);
 
@@ -186,139 +169,12 @@ export default function PhotoCaptureModal() {
       locationPromiseRef.current = geo;
     }
 
-    // ✅ Synchronous → iOS allows this
     cameraInputRef.current?.click();
   };
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // Photo selected handler (shared between both flows)
-  // ─────────────────────────────────────────────────────────────────────────
-  const handleReportPhotoChange = async (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setErrorMsg(null);
-    setReportImage(null);
-    setStep("processing");
-
-    try {
-      const isHeic =
-        file.type === "image/heic" ||
-        file.type === "image/heif" ||
-        file.name.toLowerCase().endsWith(".heic") ||
-        file.name.toLowerCase().endsWith(".heif");
-
-      let checkBlob: Blob = file;
-      if (isHeic) {
-        const heic2any = (await import("heic2any")).default;
-        const converted = await heic2any({ blob: file, toType: "image/jpeg", quality: 0.9 });
-        checkBlob = Array.isArray(converted) ? converted[0] : converted;
-      }
-
-      const [dataUrl, coords] = await Promise.all([
-        new Promise<string>((resolve, reject) => {
-          const img    = new Image();
-          const reader = new FileReader();
-          reader.onload = (ev) => {
-            img.onload = () => {
-              const canvas = document.createElement("canvas");
-              const MAX    = 800;
-              let w = img.width, h = img.height;
-              if (w > h) { if (w > MAX) { h *= MAX / w; w = MAX; } }
-              else       { if (h > MAX) { w *= MAX / h; h = MAX; } }
-              canvas.width = w; canvas.height = h;
-              const ctx = canvas.getContext("2d");
-              if (ctx) {
-                ctx.drawImage(img, 0, 0, w, h);
-                resolve(canvas.toDataURL("image/jpeg", 0.6));
-              } else {
-                reject(new Error("canvas_error"));
-              }
-            };
-            img.onerror = () => reject(new Error("img_load"));
-            if (ev.target?.result) img.src = ev.target.result as string;
-          };
-          reader.onerror = () => reject(new Error("reader_error"));
-          reader.readAsDataURL(checkBlob);
-        }),
-        locationPromiseRef.current ??
-          Promise.reject(new Error("geolocation_not_started")),
-      ]);
-
-      setCoords(coords);
-      setReportImage(dataUrl);
-      setActiveReportForm("locationAdjust");
-    } catch (err: any) {
-      const code = err?.code ?? null;
-      const msg  = err?.message ?? String(err);
-
-      if (["canvas_error", "img_load", "reader_error"].includes(msg)) {
-        // Image error — back to main (both platforms)
-        setStep("main");
-        setErrorMsg("Failed to read image. Please try another photo.");
-      } else {
-        // Location error — back to appropriate step
-        if (isIOS) {
-          setStep("permissions");
-          if (code === 1 || msg.includes("denied")) setLocStatus("denied");
-          else if (code === 2) setErrorMsg("GPS unavailable. Move to an open area and try again.");
-          else if (code === 3) setErrorMsg("Location timed out. Check Location Services and retry.");
-          else setErrorMsg("Something went wrong. Please try again.");
-        } else {
-          // Non-iOS: back to main, show error inline
-          setStep("main");
-          if (code === 1 || msg.includes("denied")) {
-            setErrorMsg(
-              "Location access was denied. Please allow location access in your browser settings and try again."
-            );
-          } else if (code === 2) {
-            setErrorMsg("GPS unavailable. Move to an open area and try again.");
-          } else if (code === 3) {
-            setErrorMsg("Location timed out. Please try again.");
-          } else {
-            setErrorMsg("Something went wrong. Please try again.");
-          }
-        }
-      }
-    } finally {
-      if (cameraInputRef.current) cameraInputRef.current.value = "";
-    }
-  };
-
-  const handleGeotagPhotoChange = async (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setErrorMsg(null);
-    setReportImage(null);
-    setStep("processing");
-
-    try {
-      const isHeic =
-        file.type === "image/heic" ||
-        file.type === "image/heif" ||
-        file.name.toLowerCase().endsWith(".heic") ||
-        file.name.toLowerCase().endsWith(".heif");
-
-      let checkBlob: Blob = file;
-      if (isHeic) {
-        const heic2any = (await import("heic2any")).default;
-        const converted = await heic2any({ blob: file, toType: "image/jpeg", quality: 0.9 });
-        checkBlob = Array.isArray(converted) ? converted[0] : converted;
-      }
-
-      const arrayBuffer = await checkBlob.arrayBuffer();
-      const coords = extractGPSFromJPEG(arrayBuffer);
-
-      if (!coords) {
-        throw new Error("no_gps_metadata");
-      }
-
-      const dataUrl = await new Promise<string>((resolve, reject) => {
+  const processAndVerifyImage = async (file: File, checkBlob: Blob, promiseCoords: Promise<{ lat: number; lng: number }>) => {
+    const [dataUrl, coords] = await Promise.all([
+      new Promise<string>((resolve, reject) => {
         const img    = new Image();
         const reader = new FileReader();
         reader.onload = (ev) => {
@@ -342,21 +198,150 @@ export default function PhotoCaptureModal() {
         };
         reader.onerror = () => reject(new Error("reader_error"));
         reader.readAsDataURL(checkBlob);
-      });
+      }),
+      promiseCoords,
+    ]);
 
-      setCoords(coords);
-      setReportImage(dataUrl);
-      setActiveReportForm("locationAdjust");
+    const res = await fetch("/api/garbage/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        reportId: verifyCleanupReportId,
+        afterImageUrl: dataUrl,
+        verifyLat: coords.lat,
+        verifyLng: coords.lng,
+      }),
+    });
+
+    if (!res.ok) {
+      throw new Error("Verification failed. Please try again.");
+    }
+
+    const data = await res.json();
+    if (data.success && data.data?.afterCleaned) {
+      await editRecord(verifyCleanupReportId!, {
+        status: "completed",
+        afterImageUrl: dataUrl,
+        cleanedAt: new Date(),
+      });
+      setVerifyCleanupReportId(null);
+    } else {
+      const err = new Error(data.data?.verificationReasoning || "AI could not verify that the area is clean.");
+      (err as any).isAiRejection = true;
+      throw err;
+    }
+  };
+
+  const handleReportPhotoChange = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setErrorMsg(null);
+    setStep("processing");
+
+    try {
+      const isHeic =
+        file.type === "image/heic" ||
+        file.type === "image/heif" ||
+        file.name.toLowerCase().endsWith(".heic") ||
+        file.name.toLowerCase().endsWith(".heif");
+
+      let checkBlob: Blob = file;
+      if (isHeic) {
+        const heic2any = (await import("heic2any")).default;
+        const converted = await heic2any({ blob: file, toType: "image/jpeg", quality: 0.9 });
+        checkBlob = Array.isArray(converted) ? converted[0] : converted;
+      }
+
+      await processAndVerifyImage(
+        file,
+        checkBlob,
+        locationPromiseRef.current ?? Promise.reject(new Error("geolocation_not_started"))
+      );
+    } catch (err: any) {
+      const code = err?.code ?? null;
+      const msg  = err?.message ?? String(err);
+      if (!err?.isAiRejection) {
+        console.error("[VerifyCapture] error — code:", code, "message:", msg);
+      }
+
+      if (["canvas_error", "img_load", "reader_error"].includes(msg)) {
+        setStep("main");
+        setErrorMsg("Failed to read image. Please try another photo.");
+      } else if (msg.includes("Verification failed") || msg.includes("AI could not verify") || err?.isAiRejection) {
+        setStep("main");
+        setErrorMsg(msg);
+      } else {
+        if (isIOS) {
+          setStep("permissions");
+          if (code === 1 || msg.includes("denied")) setLocStatus("denied");
+          else if (code === 2) setErrorMsg("GPS unavailable. Move to an open area and try again.");
+          else if (code === 3) setErrorMsg("Location timed out. Check Location Services and retry.");
+          else setErrorMsg("Something went wrong. Please try again.");
+        } else {
+          setStep("main");
+          if (code === 1 || msg.includes("denied")) {
+            setErrorMsg("Location access was denied. Please allow location access in your browser settings and try again.");
+          } else if (code === 2) {
+            setErrorMsg("GPS unavailable. Move to an open area and try again.");
+          } else if (code === 3) {
+            setErrorMsg("Location timed out. Please try again.");
+          } else {
+            setErrorMsg("Something went wrong. Please try again.");
+          }
+        }
+      }
+    } finally {
+      if (cameraInputRef.current) cameraInputRef.current.value = "";
+    }
+  };
+
+  const handleGeotagPhotoChange = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setErrorMsg(null);
+    setStep("processing");
+
+    try {
+      const isHeic =
+        file.type === "image/heic" ||
+        file.type === "image/heif" ||
+        file.name.toLowerCase().endsWith(".heic") ||
+        file.name.toLowerCase().endsWith(".heif");
+
+      let checkBlob: Blob = file;
+      if (isHeic) {
+        const heic2any = (await import("heic2any")).default;
+        const converted = await heic2any({ blob: file, toType: "image/jpeg", quality: 0.9 });
+        checkBlob = Array.isArray(converted) ? converted[0] : converted;
+      }
+
+      const arrayBuffer = await checkBlob.arrayBuffer();
+      const coords = extractGPSFromJPEG(arrayBuffer);
+
+      if (!coords) {
+        throw new Error("no_gps_metadata");
+      }
+
+      await processAndVerifyImage(file, checkBlob, Promise.resolve(coords));
     } catch (err: any) {
       const msg = err?.message ?? String(err);
+      if (!err?.isAiRejection) {
+        console.error("[GeotagVerify] error — message:", msg);
+      }
 
       setStep("main");
       if (msg === "no_gps_metadata") {
-        setErrorMsg(
-          "No GPS location metadata found in this image. Please take a live photo or upload an image with location data enabled."
-        );
+        setErrorMsg("No GPS location metadata found in this image. Please take a live photo or upload an image with location data enabled.");
       } else if (["canvas_error", "img_load", "reader_error"].includes(msg)) {
         setErrorMsg("Failed to read image. Please try another photo.");
+      } else if (msg.includes("Verification failed") || msg.includes("AI could not verify") || err?.isAiRejection) {
+        setErrorMsg(msg);
       } else {
         setErrorMsg("Something went wrong processing the image. Please try again.");
       }
@@ -384,21 +369,20 @@ export default function PhotoCaptureModal() {
   }[camStatus];
 
   return (
-    <Dialog isOpen={true} onClose={cancelReporting} step="Step 1: Capture Image">
+    <Dialog isOpen={true} onClose={cancelVerification} step="Verification">
       <div className="flex flex-col gap-1.5 text-center mb-3">
         <h3 className="text-sm font-bold text-neutral-800 dark:text-neutral-100 uppercase tracking-wider">
-          Report Waste Photo
+          Verify Cleanup Photo
         </h3>
         <p className="text-[11px] text-neutral-500 dark:text-neutral-400 leading-relaxed">
           {step === "processing"
-            ? "Resizing photo and acquiring GPS…"
+            ? "Verifying image with AI…"
             : isIOS && step === "permissions"
             ? "Grant both permissions, then open the camera."
-            : "Capture a live photo of the garbage."}
+            : "Capture a live photo of the cleaned area."}
         </p>
       </div>
 
-      {/* ── STEP: main (shown on both platforms, and as error-recovery on non-iOS) ── */}
       {step === "main" && (
         <>
           <Button
@@ -428,7 +412,6 @@ export default function PhotoCaptureModal() {
             </>
           )}
 
-          {/* Non-iOS location error recovery */}
           {!isIOS && errorMsg && (
             <div className="mt-3 bg-red-500/10 border border-red-500/30 rounded-xl p-3 flex flex-col gap-2 text-center">
               <div className="flex items-center justify-center gap-1.5">
@@ -445,14 +428,20 @@ export default function PhotoCaptureModal() {
               </button>
             </div>
           )}
+          {isIOS && errorMsg && step === "main" && (
+            <div className="mt-3 bg-red-500/10 border border-red-500/30 rounded-xl p-3 flex flex-col gap-2 text-center">
+              <div className="flex items-center justify-center gap-1.5">
+                <ShieldAlert className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                <span className="text-[10px] uppercase font-bold text-red-500">Error</span>
+              </div>
+              <p className="text-[10px] text-red-400 leading-relaxed">{errorMsg}</p>
+            </div>
+          )}
         </>
       )}
 
-      {/* ── STEP: iOS permission checklist ── */}
       {step === "permissions" && isIOS && (
         <div className="flex flex-col gap-2.5">
-
-          {/* Location row */}
           <div className={`flex items-center justify-between gap-3 px-3 py-3 rounded-xl border transition-colors ${
             locStatus === "granted" ? "bg-emerald-500/5 border-emerald-500/30"
             : locStatus === "denied"  ? "bg-red-500/5 border-red-500/30"
@@ -492,7 +481,6 @@ export default function PhotoCaptureModal() {
             </div>
           </div>
 
-          {/* Settings hint — only when denied */}
           {locStatus === "denied" && (
             <div className="bg-red-500/8 border border-red-500/20 rounded-xl px-3 py-2.5 text-left">
               <p className="text-[9px] font-bold text-red-400 uppercase tracking-wide mb-1">
@@ -508,7 +496,6 @@ export default function PhotoCaptureModal() {
             </div>
           )}
 
-          {/* Camera row */}
           <div className={`flex items-center justify-between gap-3 px-3 py-3 rounded-xl border transition-colors ${
             camStatus === "granted" ? "bg-emerald-500/5 border-emerald-500/30"
             : camStatus === "denied" ? "bg-red-500/5 border-red-500/30"
@@ -548,7 +535,6 @@ export default function PhotoCaptureModal() {
             </div>
           </div>
 
-          {/* Open Camera — enabled only when both granted */}
           <Button
             onClick={handleProceedToCamera}
             disabled={!bothGranted}
@@ -579,7 +565,6 @@ export default function PhotoCaptureModal() {
             <span className="text-[12px] font-semibold">Upload Geotagged Photo</span>
           </Button>
 
-          {/* iOS permission-step error (non-denied errors) */}
           {errorMsg && (
             <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 flex flex-col gap-1 text-center">
               <div className="flex items-center justify-center gap-1.5">
@@ -592,16 +577,14 @@ export default function PhotoCaptureModal() {
         </div>
       )}
 
-      {/* ── STEP: processing (both platforms) ── */}
       {step === "processing" && (
         <div className="flex flex-col items-center gap-3 py-6">
           <Loader2 className="w-8 h-8 text-teal-600 dark:text-cyan-400 animate-spin" />
-          <p className="text-[11px] font-semibold text-teal-700 dark:text-cyan-400">Processing Photo</p>
-          <p className="text-[10px] text-neutral-500">Resizing image &amp; acquiring GPS…</p>
+          <p className="text-[11px] font-semibold text-teal-700 dark:text-cyan-400">Verifying Photo</p>
+          <p className="text-[10px] text-neutral-500">AI is analyzing the area…</p>
         </div>
       )}
 
-      {/* Always-mounted hidden file input */}
       <input
         ref={cameraInputRef}
         type="file"
@@ -611,7 +594,6 @@ export default function PhotoCaptureModal() {
         onChange={handleReportPhotoChange}
       />
 
-      {/* Hidden file input for iOS geotagged upload */}
       <input
         ref={geotagInputRef}
         type="file"

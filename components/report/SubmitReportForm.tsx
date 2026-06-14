@@ -127,16 +127,16 @@ export default function SubmitReportForm() {
   return (
     <div className="absolute z-[9999] left-4 right-4 md:left-1/2 md:-translate-x-1/2 md:w-[340px] flex flex-col items-center pointer-events-auto shadow-[0_0_20px_rgba(0,0,0,0.5)]" style={{ top: "max(1rem, var(--sat))" }}>
       <Card variant="cyber" padding="none" className="w-full px-5 py-5 gap-4 max-h-[80vh] overflow-y-auto">
-        <div className="flex items-center justify-between border-b border-cyan-500/20 pb-2">
-          <span className="text-[10px] uppercase font-bold tracking-widest text-cyan-500/80">Step 3: Enter Details</span>
+        <div className="flex items-center justify-between border-b border-emerald-500/20 pb-2">
+          <span className="text-[10px] uppercase font-bold tracking-widest text-emerald-700 dark:text-cyan-500/80">Step 3: Enter Details</span>
           <span className="text-[9px] text-neutral-400">Waste Spot Details</span>
         </div>
 
         <img src={image} alt="Waste spot" className="w-full h-32 object-cover rounded-xl border border-neutral-800" />
 
         <div className="flex flex-col gap-1 text-left">
-          <label className="text-[9px] uppercase font-bold tracking-widest text-cyan-500/60 pl-1">Location Address</label>
-          <p className="text-[10px] text-neutral-800 dark:text-neutral-200 bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-2.5 rounded-xl break-words leading-relaxed">{draft.address}</p>
+          <label className="text-[9px] uppercase font-bold tracking-widest text-gray-600 dark:text-cyan-500/60 pl-1">Location Address</label>
+          <p className="text-[10px] text-neutral-800 dark:text-neutral-200 bg-slate-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-2.5 rounded-xl break-words leading-relaxed">{draft.address}</p>
         </div>
 
         <Input
@@ -148,7 +148,7 @@ export default function SubmitReportForm() {
         />
 
         <div className="flex flex-col gap-2 text-left">
-          <label className="text-[9px] uppercase font-bold tracking-widest text-cyan-500/60 pl-1">Severity Level</label>
+          <label className="text-[9px] uppercase font-bold tracking-widest text-gray-600 dark:text-cyan-500/60 pl-1">Severity Level</label>
           <div className="flex gap-2">
             {(["low", "medium", "high"] as const).map((s) => {
               const isSelected = severity === s;

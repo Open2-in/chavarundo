@@ -28,13 +28,13 @@ export default function Button({
   };
 
   const variantStyles = {
-    cyan: "bg-cyan-500 hover:bg-cyan-400 text-black shadow-[0_0_15px_rgba(0,255,255,0.4)] border border-cyan-500 rounded-xl",
-    yellow: "bg-[#ff9900] hover:bg-[#ffaa22] text-black border border-[#ff9900] shadow-[0_0_10px_rgba(255,153,0,0.4)] rounded-xl",
-    red: "bg-[#ff003c] hover:bg-[#ff2255] text-white border border-[#ff003c] shadow-[0_0_10px_rgba(255,0,60,0.4)] rounded-xl",
-    green: "bg-green-500 hover:bg-green-400 text-black border border-green-500 shadow-[0_0_15px_rgba(74,222,128,0.3)] rounded-xl",
-    outline: "bg-transparent hover:bg-blue-100/10 dark:hover:bg-cyan-500/10 border border-blue-500/50 dark:border-cyan-500/50 text-blue-700 dark:text-cyan-400 rounded-xl",
-    ghost: "bg-transparent text-neutral-400 hover:text-blue-600 dark:hover:text-cyan-400 hover:bg-neutral-100 dark:hover:bg-neutral-900 border border-transparent rounded-xl",
-    cancel: "text-[9px] text-neutral-400 hover:text-red-400 transition-colors uppercase border-0 p-0 hover:bg-transparent normal-case font-normal",
+    cyan: "bg-teal-600 hover:bg-teal-700 text-white border border-teal-600 dark:bg-cyan-500 dark:hover:bg-cyan-400 dark:text-black dark:shadow-[0_0_15px_rgba(0,255,255,0.4)] dark:border-cyan-500 rounded-xl",
+    yellow: "bg-amber-600 hover:bg-amber-700 text-white border border-amber-600 dark:bg-[#ff9900] dark:hover:bg-[#ffaa22] dark:text-black dark:border-[#ff9900] dark:shadow-[0_0_10px_rgba(255,153,0,0.4)] rounded-xl",
+    red: "bg-red-600 hover:bg-red-700 text-white border border-red-600 shadow-[0_0_10px_rgba(220,38,38,0.4)] rounded-xl",
+    green: "bg-green-700 hover:bg-green-800 text-white border border-green-700 rounded-xl",
+    outline: "bg-transparent hover:bg-slate-50 dark:hover:bg-cyan-500/10 border border-teal-600 dark:border-cyan-500/50 text-teal-600 dark:text-cyan-400 rounded-xl",
+    ghost: "bg-transparent text-gray-700 hover:text-teal-600 dark:hover:text-cyan-400 hover:bg-slate-50 dark:hover:bg-neutral-900 border border-gray-300 rounded-xl",
+    cancel: "text-[9px] text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors uppercase border-0 p-0 hover:bg-transparent normal-case font-normal",
   };
 
   const widthStyle = fullWidth ? "w-full" : "";

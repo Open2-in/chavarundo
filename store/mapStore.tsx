@@ -17,6 +17,8 @@ interface MapStoreProp {
   setPendingDeepLinkId: (id: string | null) => void;
   setProfileSubject: (subject: ProfileSubject | null) => void;
   setAuthoritySubject: (subject: AuthoritySubject | null) => void;
+  verifyCleanupReportId: string | null;
+  setVerifyCleanupReportId: (id: string | null) => void;
 }
 
 export const useMapStore = create<MapStoreProp>((set) => ({
@@ -31,6 +33,8 @@ export const useMapStore = create<MapStoreProp>((set) => ({
   setPendingDeepLinkId: (id) => set({ pendingDeepLinkId: id }),
   setProfileSubject: (subject) => set({ profileSubject: subject }),
   setAuthoritySubject: (subject) => set({ authoritySubject: subject }),
+  verifyCleanupReportId: null,
+  setVerifyCleanupReportId: (id) => set({ verifyCleanupReportId: id }),
 }));
 
 export function useMapSelection() {
@@ -46,6 +50,8 @@ export function useMapSelection() {
       setAuthoritySubject: s.setAuthoritySubject,
       severity: s.severity,
       setSeverity: s.setSeverity,
+      verifyCleanupReportId: s.verifyCleanupReportId,
+      setVerifyCleanupReportId: s.setVerifyCleanupReportId,
     }))
   );
 

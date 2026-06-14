@@ -1,14 +1,33 @@
 import L from "leaflet";
 
-export const getSeverityColor = (severity?: string) => {
-  switch (severity) {
-    case "high":
-      return "#ff003c";
-    case "medium":
-      return "#ff9900";
-    case "low":
-    default:
-      return "#00f0ff";
+export const getSeverityColor = (severity?: string, theme?: string) => {
+  let isDark = true;
+  if (theme) {
+    isDark = theme === "dark";
+  } else if (typeof window !== "undefined") {
+    isDark = document.documentElement.classList.contains("dark");
+  }
+
+  if (isDark) {
+    switch (severity) {
+      case "high":
+        return "#ff003c";
+      case "medium":
+        return "#ff9900";
+      case "low":
+      default:
+        return "#00f0ff";
+    }
+  } else {
+    switch (severity) {
+      case "high":
+        return "#dc2626";
+      case "medium":
+        return "#ea580c";
+      case "low":
+      default:
+        return "#0284c7";
+    }
   }
 };
 

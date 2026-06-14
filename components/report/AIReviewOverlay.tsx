@@ -65,7 +65,7 @@ export default function AIReviewOverlay() {
         onClose={undefined}
         zIndexBackdrop="z-[2700]"
         zIndexContent="z-[2701]"
-        className="bg-neutral-950 text-center gap-5"
+        className="bg-white dark:bg-neutral-950 text-center gap-5 border border-gray-200 dark:border-cyan-500/20"
       >
         {isReviewing ? (
           <>
@@ -74,7 +74,7 @@ export default function AIReviewOverlay() {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-3 w-3 bg-cyan-500"></span>
               </span>
-              <span className="text-xs uppercase font-bold tracking-[0.2em] text-cyan-400 drop-shadow-[0_0_8px_#00f0ff]">
+              <span className="text-xs uppercase font-bold tracking-[0.2em] text-cyan-600 dark:text-cyan-400 drop-shadow-[0_0_8px_rgba(6,182,212,0.3)] dark:drop-shadow-[0_0_8px_#00f0ff]">
                 {reviewPhase === 'road' ? 'Checking Road Location' : 'AI Checking Report'}
               </span>
               <span className="text-[9px] text-neutral-500 uppercase mt-1">
@@ -86,17 +86,17 @@ export default function AIReviewOverlay() {
 
             {/* Scan animation container */}
             {image && (
-              <div className="relative w-full h-44 rounded-xl border border-cyan-500/30 overflow-hidden bg-black flex items-center justify-center">
+              <div className="relative w-full h-44 rounded-xl border border-cyan-500/20 dark:border-cyan-500/30 overflow-hidden bg-slate-50 dark:bg-black flex items-center justify-center">
                 <img src={image} alt="Scanning" className="w-full h-full object-cover opacity-70" />
-                <div className="scanner-line-active absolute left-0 w-full h-0.5 bg-cyan-500 shadow-[0_0_8px_#00f0ff,0_0_15px_#00f0ff]" />
+                <div className="scanner-line-active absolute left-0 w-full h-0.5 bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.5)] dark:shadow-[0_0_8px_#00f0ff]" />
               </div>
             )}
 
             <div className="flex flex-col items-center gap-2 mt-1">
-              <div className="text-[10px] text-cyan-400/80 animate-pulse">
+              <div className="text-[10px] text-cyan-600 dark:text-cyan-400/80 animate-pulse">
                 {reviewPhase === 'road' ? 'QUERYING ROAD NETWORK DATA…' : 'RUNNING DEEP COMPUTER VISION SEGMENTATION…'}
               </div>
-              <div className="h-1 w-full bg-neutral-900 overflow-hidden rounded-full">
+              <div className="h-1 w-full bg-neutral-200 dark:bg-neutral-900 overflow-hidden rounded-full">
                 <div className="h-full bg-cyan-500" style={{ width: "60%" }} />
               </div>
             </div>
@@ -129,9 +129,9 @@ export default function AIReviewOverlay() {
               </div>
             )}
 
-            <div className="flex flex-col gap-1 text-left bg-neutral-900/50 border border-neutral-800 p-3 rounded-xl max-h-28 overflow-y-auto">
-              <span className="text-[8px] uppercase font-bold tracking-widest text-neutral-500">AI Assessment Reasoning:</span>
-              <p className="text-[10px] text-neutral-300 leading-relaxed italic">
+            <div className="flex flex-col gap-1 text-left bg-slate-50 dark:bg-neutral-900/50 border border-gray-200 dark:border-neutral-800 p-3 rounded-xl max-h-28 overflow-y-auto">
+              <span className="text-[8px] uppercase font-bold tracking-widest text-gray-500 dark:text-neutral-500">AI Assessment Reasoning:</span>
+              <p className="text-[10px] text-gray-900 dark:text-neutral-300 leading-relaxed italic">
                 "{result.reasoning}"
               </p>
             </div>

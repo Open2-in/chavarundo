@@ -37,7 +37,7 @@ export default function Dialog({
           {(step || onClose) && (
             <div className="flex items-center justify-between border-b border-cyan-500/20 pb-3">
               {step && (
-                <span className="text-[10px] uppercase font-bold tracking-widest text-blue-600/70 dark:text-cyan-500/60">
+                <span className="text-[10px] uppercase font-bold tracking-widest text-gray-900/70 dark:text-cyan-500/60">
                   {step}
                 </span>
               )}

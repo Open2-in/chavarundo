@@ -56,13 +56,13 @@ export default function ReportingOverlay() {
         <Card
           variant="default"
           padding="none"
-          className="p-4 md:p-5 shadow-[0_0_20px_rgba(0,255,255,0.15)] relative pointer-events-auto transition-all duration-300 border-blue-500/50 dark:border-cyan-500/50"
+          className="p-4 md:p-5 shadow-[0_0_20px_rgba(0,255,255,0.15)] relative pointer-events-auto transition-all duration-300 border-emerald-500/50 dark:border-cyan-500/50"
         >
-          <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-50"></div>
+          <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-emerald-500 dark:via-cyan-400 to-transparent opacity-50"></div>
 
           <div className="flex justify-between items-center">
             <div className="flex flex-col">
-              <h1 className="text-lg md:text-xl font-bold tracking-[0.2em] text-blue-600 dark:text-cyan-400 flex items-center gap-2 md:gap-3 uppercase">
+              <h1 className="text-lg md:text-xl font-bold tracking-[0.2em] text-gray-900 dark:text-cyan-400 flex items-center gap-2 md:gap-3 uppercase">
                 <span className="flex items-center justify-center">
                   <img
                     src="/logo.svg"
@@ -75,7 +75,7 @@ export default function ReportingOverlay() {
                   ചവറുണ്ടോ?
                 </span>
               </h1>
-              <div className="text-[9px] md:text-[10px] text-blue-700/80 dark:text-cyan-500/80 mt-1 uppercase tracking-widest font-semibold flex items-center gap-1 overflow-hidden h-4 md:h-5">
+              <div className="text-[9px] md:text-[10px] text-gray-900 dark:text-cyan-500/80 mt-1 uppercase tracking-widest font-semibold flex items-center gap-1 overflow-hidden h-4 md:h-5">
                 <div className="flex items-center justify-center mr-0.5">
                   <span className="relative flex h-1.5 w-1.5 md:h-2 md:w-2">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#ff003c] opacity-75"></span>
@@ -137,10 +137,10 @@ export default function ReportingOverlay() {
           >
             <div className="overflow-hidden flex flex-col">
               <div className="pt-3">
-                <p className="text-[9px] md:text-[10px] text-blue-700/70 dark:text-cyan-500/70 uppercase tracking-widest border-t border-blue-500/20 dark:border-cyan-500/20 pt-2">
+                <p className="text-[9px] md:text-[10px] text-gray-900 dark:text-cyan-500/70 uppercase tracking-widest border-t border-emerald-500/20 dark:border-cyan-500/20 pt-2">
                   Community Waste & Garbage Tracker
                 </p>
-                <div className="mt-2 md:mt-3 pt-2 md:pt-3 border-t border-blue-500/20 dark:border-cyan-500/20 flex items-center gap-1.5 text-[8px] md:text-[9px] text-blue-700/60 dark:text-cyan-500/60 uppercase tracking-widest">
+                <div className="mt-2 md:mt-3 pt-2 md:pt-3 border-t border-emerald-500/20 dark:border-cyan-500/20 flex items-center gap-1.5 text-[8px] md:text-[9px] text-gray-900 dark:text-cyan-500/60 uppercase tracking-widest">
                   <span>Built with</span>
                   <Heart className="w-2.5 h-2.5 md:w-3 md:h-3 text-red-500 fill-red-500 animate-pulse" />
                   <span>by</span>
@@ -148,7 +148,7 @@ export default function ReportingOverlay() {
                     href="https://github.com/ananthun111"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-600 dark:text-cyan-400 hover:text-black dark:text-white transition-colors underline underline-offset-2 decoration-cyan-500/50 pointer-events-auto"
+                    className="text-gray-900 dark:text-cyan-400 hover:text-black dark:text-white transition-colors underline underline-offset-2 decoration-cyan-500/50 pointer-events-auto"
                   >
                     Anantha Narayanan K
                   </a>
@@ -167,7 +167,7 @@ export default function ReportingOverlay() {
                 onClick={() => document.getElementById("seo-content")?.scrollIntoView({ behavior: "smooth" })}
                 variant="outline"
                 size="sm"
-                className="w-full bg-white/50 dark:bg-black/50 hover:bg-blue-50/10 dark:hover:bg-cyan-500/10 text-blue-700 dark:text-cyan-500 hover:text-blue-500 dark:hover:text-cyan-300 border-blue-500/30 dark:border-cyan-500/30 hover:border-blue-400/50 dark:border-cyan-400/50"
+                className="w-full bg-white/50 dark:bg-black/50 hover:bg-slate-50 dark:hover:bg-cyan-500/10 text-gray-900 dark:text-cyan-500 hover:text-gray-700 dark:hover:text-cyan-300 border-emerald-500/30 dark:border-cyan-500/30 hover:border-emerald-400/50 dark:border-cyan-400/50"
               >
                 <ExternalLink className="w-3 h-3" /> About
               </Button>
@@ -175,7 +175,7 @@ export default function ReportingOverlay() {
                 href="https://github.com/open2-in/chavarundo/issues/new"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="bg-white/50 dark:bg-black/50 hover:bg-yellow-500/10 text-blue-700 dark:text-cyan-500 hover:text-yellow-400 py-1.5 md:py-2 px-4 transition-all border border-blue-500/30 dark:border-cyan-500/30 hover:border-yellow-500/50 flex items-center justify-center gap-2 text-[10px] uppercase tracking-widest backdrop-blur-md rounded-xl"
+                className="bg-white/50 dark:bg-black/50 hover:bg-yellow-500/10 text-gray-900 dark:text-cyan-500 hover:text-yellow-400 py-1.5 md:py-2 px-4 transition-all border border-emerald-500/30 dark:border-cyan-500/30 hover:border-yellow-500/50 flex items-center justify-center gap-2 text-[10px] uppercase tracking-widest backdrop-blur-md rounded-xl"
               >
                 <Bug className="w-3 h-3" /> Report a Bug <ExternalLink className="w-2.5 h-2.5 opacity-60" />
               </a>
@@ -184,7 +184,7 @@ export default function ReportingOverlay() {
                   onClick={logout}
                   variant="outline"
                   size="sm"
-                  className="w-full bg-white/50 dark:bg-black/50 hover:bg-red-500/20 hover:text-red-400 border border-blue-500/30 dark:border-cyan-500/30 hover:border-red-500/50"
+                  className="w-full bg-white/50 dark:bg-black/50 hover:bg-red-500/20 hover:text-red-400 border border-emerald-500/30 dark:border-cyan-500/30 hover:border-red-500/50"
                 >
                   <LogOut className="w-3 h-3" /> SIGN OUT
                 </Button>

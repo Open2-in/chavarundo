@@ -52,7 +52,7 @@ export default function MiniMap({
       { maxZoom: 19 }
     ).addTo(map);
 
-    const color = getSeverityColor(severity);
+    const color = getSeverityColor(severity, theme);
     if (coords.length === 1) {
       const dot = createDotIcon(color, severity, false);
       if (dot) {
@@ -113,7 +113,7 @@ export default function MiniMap({
             <span className="text-[9px] text-black dark:text-white/50">→ {authorityLabel}</span>
           </div>
         ) : (
-          <div className="flex items-center gap-1.5 bg-white/70 dark:bg-black/70 backdrop-blur-sm px-2 py-1 rounded border border-blue-500/20 dark:border-cyan-500/20 overflow-hidden" style={{ width: 160 }}>
+          <div className="flex items-center gap-1.5 bg-white/70 dark:bg-black/70 backdrop-blur-sm px-2 py-1 rounded border border-emerald-500/20 dark:border-cyan-500/20 overflow-hidden" style={{ width: 160 }}>
             <div className="h-3 rounded w-full bg-gradient-to-r from-cyan-900/40 via-cyan-500/20 to-cyan-900/40" style={{ backgroundSize: "200% 100%", animation: "shimmer 1.4s infinite" }} />
           </div>
         )}

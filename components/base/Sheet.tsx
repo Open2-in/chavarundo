@@ -44,10 +44,10 @@ export default function Sheet({
       >
         <Card variant="sheet" padding="none" className={className}>
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-blue-200 dark:border-cyan-500/30 bg-blue-50/50 dark:bg-cyan-950/50 shrink-0">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-cyan-500/30 bg-slate-50 dark:bg-cyan-950/50 shrink-0">
             <div className="flex items-center gap-2 min-w-0">
               {icon}
-              <h2 className="text-sm font-bold uppercase tracking-widest text-blue-800 dark:text-cyan-400 truncate">
+              <h2 className="text-sm font-bold uppercase tracking-widest text-gray-900 dark:text-cyan-400 truncate">
                 {title}
               </h2>
             </div>
@@ -55,7 +55,7 @@ export default function Sheet({
               {headerRight}
               <button
                 onClick={onClose}
-                className="p-1.5 rounded text-blue-500 dark:text-cyan-500 hover:bg-blue-100 dark:hover:bg-cyan-900/40 transition-colors"
+                className="p-1.5 rounded text-gray-700 dark:text-cyan-500 hover:bg-slate-100 dark:hover:bg-cyan-900/40 transition-colors"
                 title="Close"
               >
                 <X className="w-4 h-4" />
@@ -70,7 +70,7 @@ export default function Sheet({
 
           {/* Footer */}
           {footer && (
-            <div className="shrink-0 border-t border-blue-200/50 dark:border-cyan-500/20 bg-blue-50/30 dark:bg-cyan-950/30">
+            <div className="shrink-0 border-t border-gray-200/50 dark:border-cyan-500/20 bg-slate-50 dark:bg-cyan-950/30">
               {footer}
             </div>
           )}
