@@ -136,8 +136,8 @@ export default function MapSearch({ isOpen, onClose }: MapSearchProps) {
         style={{ top: "max(5rem, calc(4rem + var(--sat)))" }}
       >
         {/* Input row */}
-        <Card variant="default" padding="none" className="flex-row items-center rounded-2xl px-1 pr-1 border-blue-400/60 dark:border-cyan-500/60 shadow-[0_8px_32px_rgba(0,0,0,0.18)] dark:shadow-[0_8px_32px_rgba(0,255,255,0.08)]">
-          <Search className="w-4 h-4 text-blue-500/70 dark:text-cyan-500/60 ml-3 shrink-0" />
+        <Card variant="default" padding="none" className="flex-row items-center rounded-2xl px-1 pr-1 border-emerald-400/60 dark:border-cyan-500/60 shadow-[0_8px_32px_rgba(0,0,0,0.18)] dark:shadow-[0_8px_32px_rgba(0,255,255,0.08)]">
+          <Search className="w-4 h-4 text-gray-700 dark:text-cyan-500/60 ml-3 shrink-0" />
           <input
             ref={inputRef}
             type="text"
@@ -145,15 +145,15 @@ export default function MapSearch({ isOpen, onClose }: MapSearchProps) {
             onChange={(e) => searchPlaces(e.target.value)}
             placeholder="Search location..."
             style={{ fontSize: 15 }}
-            className="flex-1 bg-transparent text-blue-700 dark:text-cyan-300 px-3 py-3 outline-none placeholder:text-blue-400/50 dark:placeholder:text-cyan-500/40 font-mono min-w-0"
+            className="flex-1 bg-transparent text-gray-900 dark:text-cyan-300 px-3 py-3 outline-none placeholder:text-gray-500 dark:placeholder:text-cyan-500/40 font-mono min-w-0"
           />
           {isSearching && (
-            <span className="w-3.5 h-3.5 border-2 border-blue-400 dark:border-cyan-400 border-t-transparent rounded-full animate-spin mr-2 shrink-0" />
+            <span className="w-3.5 h-3.5 border-2 border-emerald-400 dark:border-cyan-400 border-t-transparent rounded-full animate-spin mr-2 shrink-0" />
           )}
           <Button
             onClick={onClose}
             variant="ghost"
-            className="p-2 text-blue-400/70 dark:text-cyan-500/50 hover:text-blue-700 dark:hover:text-cyan-300 hover:bg-blue-50 dark:hover:bg-cyan-900/30"
+            className="p-2 text-gray-500 dark:text-cyan-500/50 hover:text-gray-900 dark:hover:text-cyan-300 hover:bg-slate-50 dark:hover:bg-cyan-900/30"
           >
             <X className="w-4 h-4" />
           </Button>
@@ -166,12 +166,12 @@ export default function MapSearch({ isOpen, onClose }: MapSearchProps) {
               <button
                 key={i}
                 onClick={() => goToPlace(r)}
-                className="w-full text-left px-4 py-2.5 hover:bg-blue-50/80 dark:hover:bg-cyan-900/40 text-blue-700 dark:text-cyan-300 flex flex-col border-b border-blue-100/60 dark:border-cyan-500/10 last:border-0 transition-colors cursor-pointer"
+                className="w-full text-left px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-cyan-900/40 text-gray-900 dark:text-cyan-300 flex flex-col border-b border-emerald-100/60 dark:border-cyan-500/10 last:border-0 transition-colors cursor-pointer"
               >
                 <span className="font-bold text-xs truncate w-full block">
                   {r.name || r.display_name?.split(",")[0] || "Unknown"}
                 </span>
-                <span className="text-[10px] text-blue-500/70 dark:text-cyan-500/60 truncate w-full block mt-0.5">
+                <span className="text-[10px] text-gray-700 dark:text-cyan-500/60 truncate w-full block mt-0.5">
                   {r.subtitle || r.display_name || ""}
                 </span>
               </button>
@@ -180,7 +180,7 @@ export default function MapSearch({ isOpen, onClose }: MapSearchProps) {
         )}
 
         {showResults && query.trim() && !isSearching && results.length === 0 && (
-          <Card variant="default" className="mt-1.5 rounded-2xl px-4 py-3 text-[11px] text-blue-500/70 dark:text-cyan-500/50 uppercase tracking-widest text-center">
+          <Card variant="default" className="mt-1.5 rounded-2xl px-4 py-3 text-[11px] text-gray-700 dark:text-cyan-500/50 uppercase tracking-widest text-center">
             No results found
           </Card>
         )}

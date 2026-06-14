@@ -34,7 +34,7 @@ export default function ReportDetailSheet({
   const [wardMember, setWardMember] = useState<WardMember | null>(null);
   const wardMemberFetched = useRef(false);
 
-  const { setAuthoritySubject } = useMapSelection();
+  const { setAuthoritySubject, setVerifyCleanupReportId } = useMapSelection();
   const { setActivePanel } = useUI();
 
   const handleSelectAuthority = (auth: any) => {
@@ -219,7 +219,7 @@ export default function ReportDetailSheet({
         transition={{ duration: 0.2 }}
       />
       <motion.div
-        className="fixed bottom-0 left-0 right-0 md:left-1/2 md:-translate-x-1/2 md:max-w-[600px] z-[2501] bg-white/95 dark:bg-black/95 border-t border-blue-500/40 dark:border-cyan-500/40 rounded-t-2xl font-mono max-h-[85vh] flex flex-col shadow-[0_-8px_40px_rgba(0,255,255,0.1)]"
+        className="fixed bottom-0 left-0 right-0 md:left-1/2 md:-translate-x-1/2 md:max-w-[600px] z-[2501] bg-white/95 dark:bg-black/95 border-t border-gray-200 dark:border-cyan-500/40 rounded-t-2xl font-mono max-h-[85vh] flex flex-col shadow-[0_-8px_40px_rgba(0,255,255,0.1)]"
         onClick={(e) => e.stopPropagation()}
         onPointerDown={(e) => e.nativeEvent.stopPropagation()}
         onTouchStart={(e) => e.nativeEvent.stopPropagation()}
@@ -234,7 +234,7 @@ export default function ReportDetailSheet({
           className="flex justify-center pt-3 pb-2 shrink-0 cursor-grab active:cursor-grabbing"
           onPointerDown={startHandleDrag}
         >
-          <div className="w-12 h-1.5 rounded-full bg-blue-50/40 dark:bg-cyan-500/40" />
+          <div className="w-12 h-1.5 rounded-full bg-slate-50 dark:bg-cyan-500/40" />
         </div>
         {/* Scrollable content */}
         <div
@@ -243,10 +243,10 @@ export default function ReportDetailSheet({
         >
 
           {/* Header */}
-          <div className="flex items-start justify-between px-4 pt-2 pb-3 border-b border-blue-500/20 dark:border-cyan-500/20">
+          <div className="flex items-start justify-between px-4 pt-2 pb-3 border-b border-gray-200 dark:border-cyan-500/20">
             <div>
-              <div className="text-[9px] uppercase tracking-widest text-blue-700/60 dark:text-cyan-500/60 mb-1">Waste Report</div>
-              <div className="text-sm font-bold text-blue-600 dark:text-cyan-400 flex items-center flex-wrap gap-1">
+              <div className="text-[9px] uppercase tracking-widest text-gray-700 dark:text-cyan-500/60 mb-1">Waste Report</div>
+              <div className="text-sm font-bold text-gray-900 dark:text-cyan-400 flex items-center flex-wrap gap-1">
                 <span>{report.address || "Unknown Location"}</span>
                 {report.status === "verified" && (
                   <span className="inline-flex items-center text-cyan-400 shrink-0" title="AI Verified Report">
@@ -268,7 +268,7 @@ export default function ReportDetailSheet({
                           label: "Local Self Government"
                         });
                       }}
-                      className="text-[10px] text-orange-400/80 cursor-pointer hover:underline hover:text-orange-300 transition-colors"
+                      className="text-[10px] text-orange-700 dark:text-orange-400/80 cursor-pointer hover:underline hover:text-orange-800 dark:hover:text-orange-300 transition-colors"
                     >
                       {ac.lsgdLabel}
                     </div>
@@ -288,7 +288,7 @@ export default function ReportDetailSheet({
                           label: `${ac.acName} Constituency`
                         });
                       }}
-                      className="text-[10px] text-orange-400/60 cursor-pointer hover:underline hover:text-orange-300 transition-colors"
+                      className="text-[10px] text-orange-700/85 dark:text-orange-400/60 cursor-pointer hover:underline hover:text-orange-800 dark:hover:text-orange-300 transition-colors"
                     >
                       {ac.acName} AC{ac.pcName ? ` · ${ac.pcName} PC` : ""}
                     </div>
@@ -297,10 +297,10 @@ export default function ReportDetailSheet({
               )}
             </div>
             <div className="flex items-center gap-3 ml-3 mt-1 shrink-0">
-              <button onClick={handleShare} className="text-blue-700/50 dark:text-cyan-500/50 hover:text-blue-600 dark:text-cyan-400 cursor-pointer">
+              <button onClick={handleShare} className="text-gray-700 dark:text-cyan-500/50 hover:text-gray-900 dark:text-cyan-400 cursor-pointer">
                 <Share2 className="w-5 h-5" />
               </button>
-              <button onClick={onClose} className="text-blue-700/50 dark:text-cyan-500/50 hover:text-blue-600 dark:text-cyan-400 cursor-pointer">
+              <button onClick={onClose} className="text-gray-700 dark:text-cyan-500/50 hover:text-gray-900 dark:text-cyan-400 cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -317,11 +317,11 @@ export default function ReportDetailSheet({
               <span className="px-2 py-0.5 text-[9px] uppercase font-bold text-black" style={{ backgroundColor: color, boxShadow: `0 0 8px ${color}` }}>
                 {report.severity?.toUpperCase() || "LOW"}
               </span>
-              <span className="px-2 py-0.5 text-[9px] uppercase font-bold border border-blue-500/50 dark:border-cyan-500/50 text-blue-600 dark:text-cyan-400">
+              <span className="px-2 py-0.5 text-[9px] uppercase font-bold border border-green-300 dark:border-cyan-500/50 bg-green-100 dark:bg-transparent text-green-800 dark:text-cyan-400">
                 {report.status?.toUpperCase() || "REPORTED"}
               </span>
-              <span className="text-[9px] text-blue-700/60 dark:text-cyan-500/60 ml-auto">
-                Score: <span className={upvoters.length - downvoters.length < 0 ? "text-red-400" : "text-blue-600 dark:text-cyan-400"}>
+              <span className="text-[9px] text-gray-700 dark:text-cyan-500/60 ml-auto">
+                Score: <span className={upvoters.length - downvoters.length < 0 ? "text-red-400" : "text-gray-900 dark:text-cyan-400"}>
                   {upvoters.length - downvoters.length > 0 ? "+" : ""}{upvoters.length - downvoters.length}
                 </span>
               </span>
@@ -329,7 +329,7 @@ export default function ReportDetailSheet({
 
             {/* Image */}
             {report.imageUrl && (
-              <div className="w-full rounded border border-blue-500/30 dark:border-cyan-500/30 overflow-hidden">
+              <div className="w-full rounded border border-gray-200 dark:border-cyan-500/30 overflow-hidden">
                 <img src={report.imageUrl} alt="Road Waste" className="w-full object-cover max-h-48" />
               </div>
             )}
@@ -337,12 +337,12 @@ export default function ReportDetailSheet({
             {/* Details grid */}
             <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-[10px]">
               <div>
-                <div className="text-blue-700/50 dark:text-cyan-500/50 uppercase tracking-widest mb-0.5">Reported By</div>
-                <div className="text-blue-500 dark:text-cyan-300 font-bold">{report.userName || "Anonymous"}</div>
+                <div className="text-gray-700 dark:text-cyan-500/50 uppercase tracking-widest mb-0.5">Reported By</div>
+                <div className="text-gray-900 dark:text-cyan-300 font-bold">{report.userName || "Anonymous"}</div>
               </div>
               <div>
-                <div className="text-blue-700/50 dark:text-cyan-500/50 uppercase tracking-widest mb-0.5">Date</div>
-                <div className="text-blue-500 dark:text-cyan-300 font-bold">
+                <div className="text-gray-700 dark:text-cyan-500/50 uppercase tracking-widest mb-0.5">Date</div>
+                <div className="text-gray-900 dark:text-cyan-300 font-bold">
                   {report.createdAt
                     ? new Date(report.createdAt.toDate?.() || report.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
                     : "—"}
@@ -360,8 +360,8 @@ export default function ReportDetailSheet({
                   }}
                   className="cursor-pointer group"
                 >
-                  <div className="text-blue-700/50 dark:text-cyan-500/50 uppercase tracking-widest mb-0.5">District</div>
-                  <div className="text-blue-500 dark:text-cyan-300 font-bold group-hover:underline group-hover:text-blue-600 dark:group-hover:text-cyan-400">{report.district}</div>
+                  <div className="text-gray-700 dark:text-cyan-500/50 uppercase tracking-widest mb-0.5">District</div>
+                  <div className="text-gray-900 dark:text-cyan-300 font-bold group-hover:underline group-hover:text-gray-900 dark:group-hover:text-cyan-400">{report.district}</div>
                 </div>
               )}
               {(report.wardNo != null || ac?.wardNo != null) && (
@@ -379,8 +379,8 @@ export default function ReportDetailSheet({
                   }}
                   className="cursor-pointer group"
                 >
-                  <div className="text-blue-700/50 dark:text-cyan-500/50 uppercase tracking-widest mb-0.5">Ward</div>
-                  <div className="text-blue-500 dark:text-cyan-300 font-bold group-hover:underline group-hover:text-blue-600 dark:group-hover:text-cyan-400">
+                  <div className="text-gray-700 dark:text-cyan-500/50 uppercase tracking-widest mb-0.5">Ward</div>
+                  <div className="text-gray-900 dark:text-cyan-300 font-bold group-hover:underline group-hover:text-gray-900 dark:group-hover:text-cyan-400">
                     {report.wardName ?? ac?.wardName} (#{report.wardNo ?? ac?.wardNo})
                   </div>
                 </div>
@@ -405,24 +405,24 @@ export default function ReportDetailSheet({
                     onClick={onClick}
                     className={onClick ? "group cursor-pointer" : ""}
                   >
-                    <div className="text-blue-700/50 dark:text-cyan-500/50 uppercase tracking-widest mb-0.5">{label}</div>
+                    <div className="text-gray-700 dark:text-cyan-500/50 uppercase tracking-widest mb-0.5">{label}</div>
                     <div
-                      className={`text-blue-500 dark:text-cyan-300 font-bold leading-tight ${onClick ? "group-hover:underline group-hover:text-blue-600 dark:group-hover:text-cyan-400" : ""}`}
+                      className={`text-gray-900 dark:text-cyan-300 font-bold leading-tight ${onClick ? "group-hover:underline group-hover:text-gray-900 dark:group-hover:text-cyan-400" : ""}`}
                     >
                       {name}
                     </div>
-                    {party && <div className="text-blue-600/60 dark:text-cyan-400/60 text-[9px] mt-0.5 leading-tight">{party}</div>}
+                    {party && <div className="text-gray-900/60 dark:text-cyan-400/60 text-[9px] mt-0.5 leading-tight">{party}</div>}
                     {(phone || email) && (
                       <div className="flex gap-1 mt-1.5" onClick={(e) => e.stopPropagation()}>
                         {phone && (
                           <a href={`tel:${phone}`} aria-label={`Call ${name}`}
-                            className="flex items-center gap-1 px-1.5 py-0.5 bg-green-500/10 border border-green-500/30 text-green-400 text-[9px] font-bold uppercase tracking-widest hover:bg-green-500/20 transition-colors">
+                            className="flex items-center gap-1 px-1.5 py-0.5 bg-white border border-green-600 text-green-600 text-[9px] font-bold uppercase tracking-widest hover:bg-slate-50 transition-colors">
                             <PhoneIcon /> Call
                           </a>
                         )}
                         {email && (
                           <a href={`mailto:${email}`} aria-label={`Email ${name}`}
-                            className="flex items-center gap-1 px-1.5 py-0.5 bg-blue-50/10 dark:bg-cyan-500/10 border border-blue-500/30 dark:border-cyan-500/30 text-blue-600 dark:text-cyan-400 text-[9px] font-bold uppercase tracking-widest hover:bg-blue-50/20 dark:bg-cyan-500/20 transition-colors">
+                            className="flex items-center gap-1 px-1.5 py-0.5 bg-white border border-green-600 text-green-600 dark:bg-cyan-500/10 dark:border-cyan-500/30 dark:text-cyan-400 text-[9px] font-bold uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-cyan-500/20 transition-colors">
                             <MailIcon /> Mail
                           </a>
                         )}
@@ -496,20 +496,20 @@ export default function ReportDetailSheet({
 
             {/* Notes */}
             {report.notes && (
-              <div className="border-l-2 border-blue-500/40 dark:border-cyan-500/40 pl-3 text-[11px] text-blue-600/80 dark:text-cyan-400/80 italic leading-relaxed">
+              <div className="border-l-2 border-gray-200 dark:border-cyan-500/40 pl-3 text-[11px] text-gray-900/80 dark:text-cyan-400/80 italic leading-relaxed">
                 "{report.notes}"
               </div>
             )}
 
             {/* Vote nudge */}
-            <div className="rounded border border-blue-500/20 dark:border-cyan-500/20 bg-blue-150/40 dark:bg-cyan-950/40 px-3 py-2 text-[10px] leading-relaxed text-blue-600/80 dark:text-cyan-400/80">
-              <span className="font-bold text-blue-600 dark:text-cyan-400">Confirm</span> if you&apos;ve seen this road waste —
+            <div className="rounded border border-gray-200 dark:border-cyan-500/20 bg-slate-50 dark:bg-cyan-950/40 px-3 py-2 text-[10px] leading-relaxed text-gray-700 dark:text-cyan-400/80">
+              <span className="font-bold text-gray-900 dark:text-cyan-400">Confirm</span> if you&apos;ve seen this road waste —
               more confirmations make the report credible and increase the chance of{" "}
-              <span className="font-bold text-blue-500 dark:text-cyan-300">government action</span>.{" "}
-              <span className="font-bold text-red-400">Dispute</span> only if this spot is clean or the report is inaccurate.{" "}
+              <span className="font-bold text-gray-900 dark:text-cyan-300">government action</span>.{" "}
+              <span className="font-bold text-red-600 dark:text-red-400">Dispute</span> only if this spot is clean or the report is inaccurate.{" "}
               <button
                 onClick={(e) => { e.stopPropagation(); handleShare(); }}
-                className="font-bold text-blue-500 dark:text-cyan-300 underline underline-offset-2 hover:text-blue-400 dark:text-cyan-200 transition-colors cursor-pointer"
+                className="font-bold text-gray-900 dark:text-cyan-300 underline underline-offset-2 hover:text-gray-500 dark:text-cyan-200 transition-colors cursor-pointer"
               >
                 Share
               </button>{" "}
@@ -517,26 +517,41 @@ export default function ReportDetailSheet({
             </div>
 
             {/* Vote buttons */}
-            <div className="flex gap-2 pt-1 border-t border-blue-500/20 dark:border-cyan-500/20">
+            <div className="flex gap-2 pt-1 border-t border-gray-200 dark:border-cyan-500/20">
               <Button
                 onClick={(e) => { e.stopPropagation(); onVote(report.id, "up"); }}
                 variant={hasUpvoted ? "cyan" : "ghost"}
                 size="xs"
-                className={`flex-1 border ${hasUpvoted ? "bg-blue-100/50 dark:bg-cyan-900/50 text-blue-600 dark:text-cyan-400 border-blue-400 dark:border-cyan-400" : "border-blue-500/30 dark:border-cyan-500/30 text-blue-700/50 dark:text-cyan-500/50 hover:bg-blue-100/30 dark:bg-cyan-900/30 hover:text-blue-600 dark:text-cyan-400"}`}
+                className={`flex-1 border ${hasUpvoted ? "bg-white dark:bg-cyan-900/50 text-green-700 dark:text-cyan-400 border-green-700 dark:border-cyan-400" : "bg-transparent border-gray-300 dark:border-cyan-500/30 text-gray-700 dark:text-cyan-500/50 hover:bg-slate-50 dark:bg-cyan-900/30 hover:text-gray-900 dark:text-cyan-400"}`}
               >
-                <ThumbsUp className={`w-3 h-3 ${hasUpvoted ? "fill-cyan-400 text-black dark:text-cyan-400" : ""}`} />
+                <ThumbsUp className={`w-3 h-3 ${hasUpvoted ? "text-green-700 dark:text-cyan-400" : ""}`} />
                 Confirm ({upvoters.length})
               </Button>
               <Button
                 onClick={(e) => { e.stopPropagation(); onVote(report.id, "down"); }}
                 variant={hasDownvoted ? "red" : "ghost"}
                 size="xs"
-                className={`flex-1 border ${hasDownvoted ? "border-red-500 bg-red-900/50 text-red-500" : "border-blue-500/30 dark:border-cyan-500/30 text-blue-700/50 dark:text-cyan-500/50 hover:bg-red-900/30 hover:text-red-500"}`}
+                className={`flex-1 border ${hasDownvoted ? "border-red-700 bg-white text-red-700" : "bg-transparent border-gray-300 dark:border-cyan-500/30 text-gray-700 dark:text-cyan-500/50 hover:bg-slate-50 dark:hover:bg-cyan-900/30 hover:text-red-700"}`}
               >
                 <ThumbsDown className={`w-3 h-3 ${hasDownvoted ? "fill-red-500" : ""}`} />
                 Dispute ({downvoters.length})
               </Button>
             </div>
+
+            {/* Mark as Cleaned */}
+            {report.status !== "completed" && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onClose();
+                  setVerifyCleanupReportId(report.id);
+                }}
+                className="mt-2 w-full flex items-center justify-center gap-2 border border-green-800 dark:border-cyan-600 bg-green-700 text-white dark:text-white hover:bg-green-800 hover:border-green-900 transition-colors uppercase tracking-widest font-bold py-2.5 rounded-xl text-[11px]"
+              >
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" /></svg>
+                Mark as Cleaned
+              </button>
+            )}
           </div>
 
           <div style={{ height: "max(0.75rem, var(--sab))" }} />

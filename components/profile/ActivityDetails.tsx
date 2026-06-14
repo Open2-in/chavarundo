@@ -9,7 +9,7 @@ interface ActivityDetailsProps {
 export default function ActivityDetails({ stats }: ActivityDetailsProps) {
   return (
     <div className="px-4 py-3 space-y-2.5 font-mono">
-      <div className="text-[9px] uppercase tracking-widest text-blue-500/60 dark:text-cyan-500/40 flex items-center gap-1">
+      <div className="text-[9px] uppercase tracking-widest text-gray-700 dark:text-cyan-500/40 flex items-center gap-1">
         <Award className="w-3 h-3" /> Activity Details
       </div>
 
@@ -47,12 +47,12 @@ function DetailRow({
   value: string;
 }) {
   return (
-    <div className="flex items-center justify-between gap-2 py-1.5 border-b border-blue-100/50 dark:border-cyan-500/10 last:border-b-0">
-      <div className="flex items-center gap-2 text-blue-500/70 dark:text-cyan-500/50">
+    <div className="flex items-center justify-between gap-2 py-1.5 border-b border-emerald-100/50 dark:border-cyan-500/10 last:border-b-0">
+      <div className="flex items-center gap-2 text-gray-700 dark:text-cyan-500/50">
         {icon}
         <span className="text-[10px] uppercase tracking-wider">{label}</span>
       </div>
-      <span className="text-[11px] font-bold text-blue-800 dark:text-cyan-300 truncate max-w-[160px] text-right">
+      <span className="text-[11px] font-bold text-gray-900 dark:text-cyan-300 truncate max-w-[160px] text-right">
         {value}
       </span>
     </div>

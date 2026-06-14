@@ -31,7 +31,7 @@ export interface WasteReport {
   longitude?: number;
   createdAt: FSTimestamp | null;
   severity: "low" | "medium" | "high";
-  status: "reported" | "confirmed" | "fixed" | "pending" | "verified";
+  status: "reported" | "confirmed" | "fixed" | "pending" | "verified" | "completed";
   address: string;
   district: string;
   pincode?: string;
@@ -49,6 +49,8 @@ export interface WasteReport {
   downvoterIds?: string[];
   notes?: string;
   imageUrl?: string;
+  cleanedAt?: FSTimestamp | null;
+  afterImageUrl?: string;
 }
 
 /**
@@ -56,8 +58,9 @@ export interface WasteReport {
  * imageUrl is intentionally excluded (base64, can be 100KB+ per doc).
  * createdAt is serialized as an ISO string.
  */
-export type SerializedReport = Omit<WasteReport, "createdAt" | "imageUrl"> & {
+export type SerializedReport = Omit<WasteReport, "createdAt" | "imageUrl" | "cleanedAt" | "afterImageUrl"> & {
   createdAt: string | null;
+  cleanedAt?: string | null;
 };
 
 // ---------------------------------------------------------------------------
@@ -350,13 +353,13 @@ export async function getRecentReports(limit = 200): Promise<SerializedReport[]>
     });
 
     return rows.map(({ id, data }) => {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { imageUrl, createdAt, ...rest } = data;
+      const { imageUrl, createdAt, cleanedAt, ...rest } = data;
       return {
         id,
         ...rest,
         // Convert FSTimestamp → ISO string (JSON-serializable; component handles it)
         createdAt: (createdAt as FSTimestamp | undefined)?.toDate?.()?.toISOString() ?? null,
+        cleanedAt: (cleanedAt as FSTimestamp | undefined)?.toDate?.()?.toISOString() ?? null,
       } as SerializedReport;
     });
   } catch (err) {

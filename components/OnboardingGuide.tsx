@@ -76,7 +76,7 @@ export default function OnboardingGuide({ isOpen, onClose }: OnboardingGuideProp
                 className={`h-2 rounded-full transition-all ${
                   currentSlide === i 
                     ? "w-6 bg-cyan-500 dark:bg-cyan-400" 
-                    : "w-2 bg-neutral-300 dark:bg-neutral-800 hover:bg-neutral-400"
+                    : "w-2 bg-neutral-500 dark:bg-neutral-700 hover:bg-neutral-600"
                 }`}
                 aria-label={`Go to step ${i + 1}`}
               />
@@ -137,7 +137,7 @@ export default function OnboardingGuide({ isOpen, onClose }: OnboardingGuideProp
             className="w-full flex flex-col items-center text-center"
           >
             {/* Illustration Frame */}
-            <div className="w-full h-44 bg-neutral-50 dark:bg-neutral-900/60 border border-neutral-200/50 dark:border-cyan-500/10 rounded-2xl overflow-hidden mb-5 flex items-center justify-center p-2">
+            <div className="w-full h-44 bg-slate-50 dark:bg-neutral-900/60 border border-neutral-200/50 dark:border-cyan-500/10 rounded-2xl overflow-hidden mb-5 flex items-center justify-center p-2">
               {svgContent ? (
                 <div 
                   className="w-full h-full flex items-center justify-center"

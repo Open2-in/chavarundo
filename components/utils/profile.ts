@@ -39,6 +39,8 @@ export function computeUserStats(
   let firstReportDate: Date | null = null;
   let latestReportDate: Date | null = null;
   const locationCounts = new Map<string, number>();
+  let openReports = 0;
+  let completedReports = 0;
 
   for (const r of myReports) {
     totalUpvotes += (r.upvoterIds || []).length;
@@ -47,6 +49,9 @@ export function computeUserStats(
     if (r.severity === "high") highSeverity++;
     else if (r.severity === "medium") mediumSeverity++;
     else lowSeverity++;
+
+    if (r.status === "completed") completedReports++;
+    else openReports++;
 
     const date = parseFirestoreDate(r.createdAt);
     if (date) {
@@ -100,5 +105,7 @@ export function computeUserStats(
     firstReportDate,
     latestReportDate,
     topLocation,
+    openReports,
+    completedReports,
   };
 }

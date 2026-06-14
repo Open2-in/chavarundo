@@ -1,6 +1,6 @@
 import { Timestamp, FieldValue } from "firebase/firestore";
 
-export type WasteReportStatusProp = "reported" | "confirmed" | "fixed" | "pending" | "verified";
+export type WasteReportStatusProp = "reported" | "confirmed" | "fixed" | "pending" | "verified" | "completed";
 export type WasteReportSeverityProp = "low" | "medium" | "high";
 export type SeverityType = "low" | "medium" | "high";
 
@@ -37,6 +37,8 @@ export interface WasteReportProp {
   // Additional details
   notes?: string;
   imageUrl?: string; // Base64 or URL
+  afterImageUrl?: string; // Base64 or URL for cleaned verification
+  cleanedAt?: Timestamp | Date;
 
   // Votes
   upvoterIds?: string[];

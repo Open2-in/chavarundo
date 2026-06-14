@@ -92,6 +92,8 @@
   height: 12px;
   border-radius: 50%;
   animation: pulse-dot 2s ease-in-out infinite;
+  border: 1.5px solid #ffffff;
+  box-shadow: 0 0 3px rgba(0, 0, 0, 0.4);
 }
 
 @keyframes polyline-pulse {

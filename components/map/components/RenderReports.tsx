@@ -12,18 +12,21 @@ import { getConstituency } from "@/lib/constituency";
 import { useWasteReports } from "@/store/firebase";
 import { getSeverityColor, createDotIcon, getRoadAuthority, clampReporterName, saveReporterName } from "@/components/utils";
 import ReportDetailSheet from "./ReportDetailSheet";
+import { useTheme } from "next-themes";
 import { useMapSelection } from "@/store/mapStore";
 import { useUI } from "@/store/uiStore";
 
 import { Button, Input, Textarea } from "@/components/base";
 
 export default function RenderReports() {
+  const { resolvedTheme: theme } = useTheme();
   const reports = useWasteReports((s) => s.reports);
   const {
     detailReportId,
     setDetailReportId,
     pendingDeepLinkId,
     setPendingDeepLinkId,
+    setVerifyCleanupReportId,
   } = useMapSelection();
 
   const { activePanel, setActivePanel } = useUI();
@@ -46,6 +49,7 @@ export default function RenderReports() {
   const [editReporterName, setEditReporterName] = useState("");
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const editFileInputRef = useRef<HTMLInputElement>(null);
+
   const [constituencyMap, setConstituencyMap] = useState<Record<string, any>>({});
   const map = useMap();
   const [zoom, setZoom] = useState(map.getZoom());
@@ -215,13 +219,13 @@ export default function RenderReports() {
 
     return (
       <Popup className="futuristic-popup">
-        <div className="flex flex-col gap-1 font-mono min-w-[180px] sm:min-w-[200px] bg-white/95 dark:bg-black/90 text-blue-800 dark:text-cyan-400 p-1.5 border border-blue-200 dark:border-cyan-500/30">
-          <h3 className="font-bold text-[10px] uppercase tracking-widest border-b border-blue-200 dark:border-cyan-500/30 pb-0.5 m-0 flex justify-between items-center pr-4">
+        <div className="flex flex-col gap-1 font-mono min-w-[180px] sm:min-w-[200px] bg-white/95 dark:bg-black/90 text-gray-900 dark:text-cyan-400 p-1.5 border border-gray-200 dark:border-cyan-500/30">
+          <h3 className="font-bold text-[10px] uppercase tracking-widest border-b border-gray-200 dark:border-cyan-500/30 pb-0.5 m-0 flex justify-between items-center pr-4">
             <span className="flex items-center gap-1">
               Waste Detected
               {report.status === "verified" && (
-                <span className="inline-flex items-center text-cyan-400 shrink-0" title="AI Verified Report">
-                  <svg className="w-3.5 h-3.5 text-cyan-400 drop-shadow-[0_0_6px_rgba(6,182,212,0.6)]" viewBox="0 0 24 24" fill="currentColor">
+                <span className="inline-flex items-center text-cyan-600 dark:text-cyan-400 shrink-0" title="AI Verified Report">
+                  <svg className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400 drop-shadow-[0_0_6px_rgba(6,182,212,0.6)]" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
                   </svg>
                 </span>
@@ -230,12 +234,12 @@ export default function RenderReports() {
             <div className="flex gap-2">
               {(upvoteCount > 0 || downvoteCount > 0) && (
                 <span
-                  className={`flex items-center gap-0.5 text-[8px] ${upvoteCount - downvoteCount < 0 ? "text-red-500" : "text-blue-700 dark:text-cyan-400"}`}
+                  className={`flex items-center gap-0.5 text-[8px] ${upvoteCount - downvoteCount < 0 ? "text-red-600 dark:text-red-500" : "text-gray-900 dark:text-cyan-400"}`}
                 >
                   {upvoteCount - downvoteCount < 0 ? (
-                    <ThumbsDown className="w-2 h-2 fill-red-500" />
+                    <ThumbsDown className="w-2 h-2 fill-red-600 dark:fill-red-500" />
                   ) : (
-                    <ThumbsUp className="w-2 h-2 fill-blue-700 dark:fill-cyan-400" />
+                    <ThumbsUp className="w-2 h-2 fill-emerald-700 dark:fill-cyan-400" />
                   )}
                   {upvoteCount - downvoteCount}
                 </span>
@@ -245,18 +249,23 @@ export default function RenderReports() {
 
           {editingId !== report.id && (
             <>
-              {report.imageUrl && (
-                <div className="w-full h-12 mt-0.5 border border-blue-200 dark:border-cyan-500/30 object-cover overflow-hidden">
-                  <img
-                    src={report.imageUrl}
-                    alt="Road Waste"
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              )}
+              <div className="flex gap-1 w-full mt-0.5">
+                {report.imageUrl && (
+                  <div className="flex-1 h-12 border border-gray-200 dark:border-cyan-500/30 object-cover overflow-hidden relative">
+                    {report.afterImageUrl && <div className="absolute top-0 left-0 bg-emerald-500/80 text-white text-[7px] px-1 font-bold z-10">BEFORE</div>}
+                    <img src={report.imageUrl} alt="Road Waste" className="w-full h-full object-cover" />
+                  </div>
+                )}
+                {report.afterImageUrl && (
+                  <div className="flex-1 h-12 border border-gray-200 dark:border-emerald-500/30 object-cover overflow-hidden relative">
+                    <div className="absolute top-0 left-0 bg-emerald-500/80 text-white text-[7px] px-1 font-bold z-10">AFTER</div>
+                    <img src={report.afterImageUrl} alt="Cleaned Area" className="w-full h-full object-cover" />
+                  </div>
+                )}
+              </div>
 
-              <div className="text-[9px] m-0 text-blue-600/80 dark:text-cyan-500/70 uppercase leading-tight line-clamp-1">
-                <span className="text-blue-700 dark:text-cyan-500 font-bold inline mr-1">
+              <div className="text-[9px] m-0 text-gray-900/80 dark:text-cyan-500/70 uppercase leading-tight line-clamp-1">
+                <span className="text-gray-900 dark:text-cyan-500 font-bold inline mr-1">
                   Loc:
                 </span>
                 {report.district ? `${report.district} - ` : ""}
@@ -269,25 +278,25 @@ export default function RenderReports() {
                 return (
                   <div className="text-[9px] m-0 uppercase leading-tight border-l-2 pl-1 flex flex-col gap-0.5" style={{ borderColor: auth.color + "80" }}>
                     <span style={{ color: auth.color }}><span className="font-bold">Auth:</span> {auth.label}</span>
-                    <span className="text-blue-500/80 dark:text-cyan-500/60">→ {label}</span>
+                    <span className="text-gray-700 dark:text-cyan-500/60">→ {label}</span>
                   </div>
                 );
               })() : (() => {
                 const ac = report.acName ? report : constituencyMap[report.id];
                 if (ac === undefined) return (
-                  <div className="text-[9px] text-blue-400 dark:text-cyan-500/40 italic">loading…</div>
+                  <div className="text-[9px] text-gray-500 dark:text-cyan-500/40 italic">loading…</div>
                 );
                 if (!ac) return null;
                 return (
-                  <div className="text-[9px] m-0 text-orange-400/90 uppercase leading-tight border-l-2 border-orange-400/50 pl-1 flex flex-col gap-0.5">
+                  <div className="text-[9px] m-0 text-orange-700 dark:text-orange-400/90 uppercase leading-tight border-l-2 border-orange-700/50 dark:border-orange-400/50 pl-1 flex flex-col gap-0.5">
                     {ac.lsgdLabel && <span><span className="font-bold">Body:</span> {ac.lsgdLabel}</span>}
                     {ac.acName && <span><span className="font-bold">AC:</span> {ac.acName}{ac.pcName ? ` · ${ac.pcName} PC` : ""}</span>}
                   </div>
                 );
               })()}
 
-              <div className="text-[9px] m-0 text-blue-600/80 dark:text-cyan-500/70 uppercase leading-tight flex overflow-hidden">
-                <span className="text-blue-700 dark:text-cyan-500 font-bold inline mr-1 shrink-0">
+              <div className="text-[9px] m-0 text-gray-900/80 dark:text-cyan-500/70 uppercase leading-tight flex overflow-hidden">
+                <span className="text-gray-900 dark:text-cyan-500 font-bold inline mr-1 shrink-0">
                   By:
                 </span>
                 <span className="truncate">
@@ -297,14 +306,14 @@ export default function RenderReports() {
               </div>
 
               {report.notes && (
-                <div className="text-[9px] m-0 text-blue-800 dark:text-cyan-400 break-words border-l border-blue-400 dark:border-cyan-500/50 pl-1 leading-tight line-clamp-2">
+                <div className="text-[9px] m-0 text-gray-900 dark:text-cyan-400 break-words border-l border-emerald-400 dark:border-cyan-500/50 pl-1 leading-tight line-clamp-2">
                   "{report.notes}"
                 </div>
               )}
 
               {report.createdAt && (
-                <div className="text-[10px] m-0 text-blue-600/80 dark:text-cyan-500/70 uppercase">
-                  <span className="text-blue-700 dark:text-cyan-500 font-bold mr-1">Log:</span>
+                <div className="text-[10px] m-0 text-gray-900/80 dark:text-cyan-500/70 uppercase">
+                  <span className="text-gray-900 dark:text-cyan-500 font-bold mr-1">Log:</span>
                   {new Date(
                     report.createdAt.toDate?.() || report.createdAt,
                   ).toLocaleString()}
@@ -312,9 +321,9 @@ export default function RenderReports() {
               )}
               <div className="flex justify-between items-center mt-1">
                 <div className="flex gap-2">
-                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] uppercase tracking-wider font-bold border border-blue-400 dark:border-cyan-500/50 text-blue-700 dark:text-cyan-400">
-                    {report.status === "verified" && (
-                      <svg className="w-3 h-3 text-cyan-400 drop-shadow-[0_0_4px_rgba(6,182,212,0.6)]" viewBox="0 0 24 24" fill="currentColor">
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] uppercase tracking-wider font-bold border border-green-300 dark:border-cyan-500/50 bg-green-100 dark:bg-transparent text-green-800 dark:text-cyan-400">
+                    {(report.status === "verified" || report.status === "completed") && (
+                      <svg className={`w-3 h-3 ${report.status === "completed" ? "text-gray-500" : "text-green-600 dark:text-cyan-400 drop-shadow-[0_0_4px_rgba(74,222,128,0.6)] dark:drop-shadow-[0_0_4px_rgba(6,182,212,0.6)]"}`} viewBox="0 0 24 24" fill="currentColor">
                         <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
                       </svg>
                     )}
@@ -339,11 +348,11 @@ export default function RenderReports() {
                     }}
                     variant={hasUpvoted ? "cyan" : "ghost"}
                     size="xs"
-                    className={`p-1 border ${hasUpvoted ? "border-blue-600 dark:border-cyan-400 bg-blue-100 dark:bg-cyan-900/50 text-blue-700 dark:text-cyan-400" : "border-blue-200 dark:border-transparent text-blue-500 dark:text-cyan-500/50 hover:bg-blue-100 dark:hover:bg-blue-100/30 dark:bg-cyan-900/30 hover:text-blue-700 dark:hover:text-cyan-400"}`}
+                    className={`p-1 border ${hasUpvoted ? "border-emerald-600 dark:border-cyan-400 bg-slate-100 dark:bg-cyan-900/50 text-gray-900 dark:text-cyan-400" : "border-gray-200 dark:border-transparent text-gray-700 dark:text-cyan-500/50 hover:bg-slate-100 dark:hover:bg-slate-100/30 dark:bg-cyan-900/30 hover:text-gray-900 dark:hover:text-cyan-400"}`}
                     title="Upvote"
                   >
                     <ThumbsUp
-                      className={`w-3 h-3 ${hasUpvoted ? "fill-blue-700 dark:fill-cyan-400" : ""}`}
+                      className={`w-3 h-3 ${hasUpvoted ? "fill-emerald-700 dark:fill-cyan-400" : ""}`}
                     />
                   </Button>
                   <Button
@@ -353,34 +362,49 @@ export default function RenderReports() {
                     }}
                     variant={hasDownvoted ? "red" : "ghost"}
                     size="xs"
-                    className={`p-1 border ${hasDownvoted ? "border-red-500 bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-500" : "border-blue-200 dark:border-transparent text-blue-500 dark:text-cyan-500/50 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-500"}`}
+                    className={`p-1 border ${hasDownvoted ? "border-red-700 bg-red-50 dark:bg-red-900/50 text-red-700 dark:text-red-500" : "border-gray-200 dark:border-transparent text-gray-700 dark:text-cyan-500/50 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-500"}`}
                     title="Downvote"
                   >
                     <ThumbsDown
-                      className={`w-3 h-3 ${hasDownvoted ? "fill-red-500" : ""}`}
+                      className={`w-3 h-3 ${hasDownvoted ? "fill-red-700 dark:fill-red-500" : ""}`}
                     />
                   </Button>
                 </div>
               </div>
 
-              <Button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setDetailReportId(report.id);
-                }}
-                variant="outline"
-                size="xs"
-                className="w-full mt-1 py-1.5"
-              >
-                View Details ↓
-              </Button>
+              <div className="flex gap-1 mt-1">
+                <Button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDetailReportId(report.id);
+                  }}
+                  variant="outline"
+                  size="xs"
+                  className="flex-1 py-1.5"
+                >
+                  Details ↓
+                </Button>
+                {report.status !== "completed" && (
+                  <Button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setVerifyCleanupReportId(report.id);
+                    }}
+                    variant="green"
+                    size="xs"
+                    className="flex-1 py-1.5"
+                  >
+                    Cleaned ✓
+                  </Button>
+                )}
+              </div>
             </>
           )}
 
           {user?.uid === report.userId &&
             (deletingId === report.id ? (
-              <div className="mt-2 flex flex-col items-center gap-2 border-t pt-2 border-blue-500/30 dark:border-cyan-500/30">
-                <span className="text-[10px] uppercase font-bold text-red-500">
+              <div className="mt-2 flex flex-col items-center gap-2 border-t pt-2 border-emerald-500/30 dark:border-cyan-500/30">
+                <span className="text-[10px] uppercase font-bold text-red-600 dark:text-red-500">
                   Delete Report?
                 </span>
                 <div className="flex gap-2 w-full">
@@ -399,14 +423,14 @@ export default function RenderReports() {
                     }}
                     variant="ghost"
                     size="xs"
-                    className="flex-1 border border-blue-500/50 dark:border-cyan-500/50"
+                    className="flex-1 border border-emerald-500/50 dark:border-cyan-500/50"
                   >
                     Cancel
                   </Button>
                 </div>
               </div>
             ) : editingId === report.id ? (
-              <div className="mt-2 flex flex-col items-start gap-2 border-t pt-2 border-blue-500/30 dark:border-cyan-500/30 w-full">
+              <div className="mt-2 flex flex-col items-start gap-2 border-t pt-2 border-emerald-500/30 dark:border-cyan-500/30 w-full">
                 <Input
                   label="Reported As"
                   type="text"
@@ -418,7 +442,7 @@ export default function RenderReports() {
                   className="p-1.5 mt-0.5 rounded-lg w-full"
                 />
                 <div className="w-full font-mono flex flex-col gap-1 text-left">
-                  <label className="text-[9px] uppercase font-bold tracking-widest text-cyan-500/60 pl-1">
+                  <label className="text-[9px] uppercase font-bold tracking-widest text-gray-600 dark:text-cyan-500/60 pl-1">
                     Severity
                   </label>
                   <select
@@ -428,7 +452,7 @@ export default function RenderReports() {
                         e.target.value as "low" | "medium" | "high",
                       )
                     }
-                    className="w-full bg-neutral-100 dark:bg-neutral-900 text-neutral-800 dark:text-neutral-200 border border-neutral-200 dark:border-neutral-800 p-2 rounded-xl outline-none focus:border-cyan-500 transition-colors text-[10px] uppercase"
+                    className="w-full bg-slate-50 dark:bg-neutral-900 text-neutral-800 dark:text-neutral-200 border border-neutral-200 dark:border-neutral-800 p-2 rounded-xl outline-none focus:border-cyan-500 transition-colors text-[10px] uppercase"
                   >
                     <option value="low">Low</option>
                     <option value="medium">Medium</option>
@@ -443,7 +467,7 @@ export default function RenderReports() {
                   placeholder="Update notes..."
                 />
                 <div className="w-full flex flex-col gap-1 text-left font-mono">
-                  <label className="text-[9px] uppercase font-bold tracking-widest text-cyan-500/60 pl-1">
+                  <label className="text-[9px] uppercase font-bold tracking-widest text-gray-600 dark:text-cyan-500/60 pl-1">
                     Image
                   </label>
                   <input
@@ -454,7 +478,7 @@ export default function RenderReports() {
                     onChange={handleEditImageChange}
                   />
                   {editImageUrl ? (
-                    <div className="relative mt-1 border border-neutral-200 dark:border-neutral-800 p-1 w-full max-h-20 overflow-hidden flex justify-center bg-neutral-100 dark:bg-neutral-900 rounded-xl">
+                    <div className="relative mt-1 border border-neutral-200 dark:border-neutral-800 p-1 w-full max-h-20 overflow-hidden flex justify-center bg-slate-50 dark:bg-neutral-900 rounded-xl">
                       <img
                         src={editImageUrl}
                         alt="edit preview"
@@ -533,9 +557,9 @@ export default function RenderReports() {
                     e.stopPropagation();
                     setDeletingId(report.id);
                   }}
-                  variant="red"
+                  variant="ghost"
                   size="xs"
-                  className="flex-1 bg-red-500/10 text-red-500 border border-red-500/50 hover:bg-red-500/20"
+                  className="flex-1 bg-white dark:bg-transparent text-red-600 dark:text-red-500 border border-red-600 dark:border-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
                 >
                   <Trash2 className="w-3.5 h-3.5" /> Delete
                 </Button>
@@ -567,20 +591,32 @@ export default function RenderReports() {
           const avgWeight = totalWeight / markers.length;
 
           let light = "#a0ffff", mid = "#00f0ff", dark = "#008fab";
-          if (avgWeight >= 2.5) {
-            light = "#ff8099"; mid = "#ff003c"; dark = "#8b0020";
-          } else if (avgWeight >= 1.5) {
-            light = "#ffd080"; mid = "#ff9900"; dark = "#a05c00";
+          if (theme === "light") {
+            light = "#7dd3fc"; mid = "#0284c7"; dark = "#0369a1";
+            if (avgWeight >= 2.5) {
+              light = "#fca5a5"; mid = "#dc2626"; dark = "#991b1b";
+            } else if (avgWeight >= 1.5) {
+              light = "#fed7aa"; mid = "#ea580c"; dark = "#c2410c";
+            }
+          } else {
+            if (avgWeight >= 2.5) {
+              light = "#ff8099"; mid = "#ff003c"; dark = "#8b0020";
+            } else if (avgWeight >= 1.5) {
+              light = "#ffd080"; mid = "#ff9900"; dark = "#a05c00";
+            }
           }
+
+          const textColor = theme === "light" ? "#ffffff" : "#001a1f";
 
           return L.divIcon({
             html: `
               <div style="
                 width:28px;height:28px;border-radius:50%;
                 background:radial-gradient(circle at 35% 30%, ${light} 0%, ${mid} 45%, ${dark} 100%);
-                box-shadow:0 0 8px ${mid}bb, inset 0 1px 3px rgba(255,255,255,0.3);
+                border:1.5px solid #ffffff;
+                box-shadow:0 0 6px rgba(0,0,0,0.3), 0 0 8px ${mid}bb;
                 display:flex;align-items:center;justify-content:center;
-                font-size:9px;font-weight:bold;color:#001a1f;font-family:monospace;
+                font-size:9px;font-weight:bold;color:${textColor};font-family:monospace;
               ">${markers.length}</div>
             `,
             className: "bg-transparent",
@@ -588,7 +624,7 @@ export default function RenderReports() {
           });
         }}
       >
-        {reports.map((report) => {
+        {reports.filter(r => r.status !== "completed").map((report) => {
           if (!report.encodedPath) return null;
           try {
             const path = decode(report.encodedPath).map(
@@ -598,13 +634,13 @@ export default function RenderReports() {
             const displaySeverity =
               editingId === report.id ? editSeverity : report.severity;
             const dot = createDotIcon(
-              getSeverityColor(displaySeverity),
+              getSeverityColor(displaySeverity, theme),
               displaySeverity || "low",
               detailReportId === report.id,
             );
             return (
               <Marker
-                key={`marker-${report.id}`}
+                key={`marker-${report.id}-${theme}`}
                 position={path[0]}
                 icon={dot || L.Icon.Default.prototype}
                 eventHandlers={{
@@ -627,7 +663,7 @@ export default function RenderReports() {
       </MarkerClusterGroup>
 
       {showPolylines &&
-        reports.map((report) => {
+        reports.filter(r => r.status !== "completed").map((report) => {
           if (!report.encodedPath) return null;
           try {
             const path = decode(report.encodedPath).map(
@@ -638,14 +674,14 @@ export default function RenderReports() {
               editingId === report.id ? editSeverity : report.severity;
             return (
               <Polyline
-                key={`line-${report.id}`}
+                key={`line-${report.id}-${theme}`}
                 positions={path}
                 pathOptions={{
                   className:
                     displaySeverity === "high"
                       ? "animated-polyline-high"
                       : "animated-polyline",
-                  color: getSeverityColor(displaySeverity),
+                  color: getSeverityColor(displaySeverity, theme),
                   weight: displaySeverity === "high" ? 6 : 4,
                   opacity: 0.8,
                 }}

@@ -23,9 +23,9 @@ export default function Card({
   };
 
   const variantStyles = {
-    cyber: "bg-white/90 dark:bg-black/90 border border-cyan-500/60 shadow-[0_0_25px_rgba(0,255,255,0.2)]",
-    default: "bg-white/95 dark:bg-black/95 border border-blue-500/40 dark:border-cyan-500/40 shadow-[0_0_40px_rgba(0,255,255,0.1)]",
-    sheet: "bg-white/95 dark:bg-neutral-950/95 border-l border-blue-200 dark:border-cyan-500/30 shadow-[-4px_0_30px_rgba(0,100,255,0.1)] dark:shadow-[-4px_0_30px_rgba(0,255,255,0.1)] rounded-none h-full",
+    cyber: "bg-white/90 dark:bg-black/90 border border-cyan-600/30 dark:border-cyan-500/60 shadow-[0_0_20px_rgba(6,182,212,0.1)] dark:shadow-[0_0_25px_rgba(0,255,255,0.2)]",
+    default: "bg-white/95 dark:bg-black/95 border border-teal-500/25 dark:border-cyan-500/40 shadow-[0_0_40px_rgba(0,255,255,0.1)]",
+    sheet: "bg-white/95 dark:bg-neutral-950/95 border-l border-cyan-500/15 dark:border-cyan-500/30 shadow-[-4px_0_30px_rgba(0,100,255,0.1)] dark:shadow-[-4px_0_30px_rgba(0,255,255,0.1)] rounded-none h-full",
   };
 
   return (

@@ -11,6 +11,8 @@ export interface UserStats {
   firstReportDate: Date | null;
   latestReportDate: Date | null;
   topLocation: string;
+  openReports?: number;
+  completedReports?: number;
 }
 
 /** A user whose profile is being viewed (used when it isn't the logged-in user). */

@@ -225,21 +225,21 @@ export default async function ReportPage({
         }}
       />
 
-      <div className="min-h-screen bg-[#020810] text-white font-sans">
+      <div className="min-h-screen bg-slate-50 dark:bg-[#020810] text-slate-900 dark:text-white font-sans">
         {/* Top accent line */}
-        <div className="h-[2px] w-full bg-gradient-to-r from-transparent via-cyan-400 to-transparent" />
+        <div className="h-[2px] w-full bg-gradient-to-r from-transparent via-emerald-500 dark:via-cyan-400 to-transparent" />
 
         {/* Header */}
-        <header className="px-6 py-4 flex items-center justify-between border-b border-white/5">
+        <header className="px-6 py-4 flex items-center justify-between border-b border-gray-200 dark:border-white/5">
           <Link
             href="/"
-            className="text-cyan-400 font-mono text-lg font-bold tracking-tight hover:text-cyan-300 transition-colors"
+            className="text-cyan-700 dark:text-cyan-400 font-mono text-lg font-bold tracking-tight hover:text-cyan-800 dark:hover:text-cyan-300 transition-colors"
           >
             Chavarundo?
           </Link>
           <Link
             href="/"
-            className="text-xs text-cyan-400/70 border border-cyan-400/20 rounded-full px-4 py-1.5 hover:border-cyan-400/50 hover:text-cyan-400 transition-all font-mono tracking-widest"
+            className="text-xs text-cyan-700 dark:text-cyan-400/70 border border-cyan-300 dark:border-cyan-400/20 rounded-full px-4 py-1.5 hover:border-cyan-500 dark:hover:border-cyan-400/50 hover:text-cyan-800 dark:hover:text-cyan-400 transition-all font-mono tracking-widest"
           >
             VIEW MAP
           </Link>
@@ -259,11 +259,11 @@ export default async function ReportPage({
             >
               {severityLabel(r.severity)} Severity
             </span>
-            <span className="text-xs font-mono tracking-widest px-3 py-1 rounded-full border border-white/10 text-white/50 uppercase">
+            <span className="text-xs font-mono tracking-widest px-3 py-1 rounded-full border border-gray-200 dark:border-white/10 text-gray-500 dark:text-white/50 bg-slate-100 dark:bg-white/5 uppercase">
               {statusLabel(r.status)}
             </span>
             {r.distanceM && (
-              <span className="text-xs font-mono text-white/30 tracking-widest">
+              <span className="text-xs font-mono text-gray-400 dark:text-white/30 tracking-widest">
                 {formatDistance(r.distanceM)} affected
               </span>
             )}
@@ -271,18 +271,18 @@ export default async function ReportPage({
 
           {/* Address / title */}
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold leading-tight text-white flex items-center flex-wrap">
+            <h1 className="text-2xl sm:text-3xl font-bold leading-tight text-gray-900 dark:text-white flex items-center flex-wrap">
               <span>{r.address || "Road Waste Report"}</span>
               {r.status === "verified" && (
-                <span className="inline-flex items-center ml-2 align-middle text-cyan-400 shrink-0" title="AI Verified Report">
-                  <svg className="w-6 h-6 text-cyan-400 drop-shadow-[0_0_6px_rgba(6,182,212,0.6)]" viewBox="0 0 24 24" fill="currentColor">
+                <span className="inline-flex items-center ml-2 align-middle text-cyan-600 dark:text-cyan-400 shrink-0" title="AI Verified Report">
+                  <svg className="w-6 h-6 text-cyan-600 dark:text-cyan-400 drop-shadow-[0_0_6px_rgba(6,182,212,0.6)]" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
                   </svg>
                 </span>
               )}
             </h1>
             {r.district && (
-              <p className="text-white/40 mt-1 text-sm font-mono">{r.district}, Kerala</p>
+              <p className="text-gray-500 dark:text-white/40 mt-1 text-sm font-mono">{r.district}, Kerala</p>
             )}
           </div>
 
@@ -292,7 +292,7 @@ export default async function ReportPage({
               href={osmUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-4 rounded-xl border border-white/10 bg-white/[0.02] px-5 py-4 hover:border-cyan-400/30 hover:bg-cyan-400/5 transition-all group"
+              className="flex items-center gap-4 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/[0.02] px-5 py-4 hover:border-cyan-500/30 dark:hover:border-cyan-400/30 hover:bg-cyan-50/50 dark:hover:bg-cyan-400/5 hover:shadow-sm transition-all group"
             >
               <div
                 className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center"
@@ -304,12 +304,12 @@ export default async function ReportPage({
                 </svg>
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-sm text-white/70 font-mono truncate">{r.address}</div>
-                <div className="text-xs text-white/30 font-mono mt-0.5">
+                <div className="text-sm text-gray-700 dark:text-white/70 font-mono truncate">{r.address}</div>
+                <div className="text-xs text-gray-400 dark:text-white/30 font-mono mt-0.5">
                   {coord[0].toFixed(5)}, {coord[1].toFixed(5)}
                 </div>
               </div>
-              <div className="text-xs text-cyan-400/50 font-mono tracking-widest group-hover:text-cyan-400 transition-colors flex-shrink-0">
+              <div className="text-xs text-cyan-700 dark:text-cyan-400/50 font-mono tracking-widest group-hover:text-cyan-800 dark:group-hover:text-cyan-400 transition-colors flex-shrink-0">
                 OSM ↗
               </div>
             </a>
@@ -331,29 +331,29 @@ export default async function ReportPage({
               .map((item) => (
                 <div
                   key={item!.label}
-                  className="rounded-lg border border-white/8 bg-white/[0.02] px-4 py-3"
+                  className="rounded-lg border border-gray-200 dark:border-white/8 bg-white dark:bg-white/[0.02] px-4 py-3 shadow-sm"
                 >
-                  <div className="text-[10px] font-mono text-white/30 tracking-widest uppercase mb-1">
+                  <div className="text-[10px] font-mono text-gray-400 dark:text-white/30 tracking-widest uppercase mb-1">
                     {item!.label}
                   </div>
-                  <div className="text-sm font-medium text-white/80 truncate">{item!.value}</div>
+                  <div className="text-sm font-medium text-gray-800 dark:text-white/80 truncate">{item!.value}</div>
                 </div>
               ))}
           </div>
 
           {/* Notes */}
           {r.notes && (
-            <div className="rounded-lg border border-white/10 bg-white/[0.02] px-5 py-4">
-              <div className="text-[10px] font-mono text-white/30 tracking-widest uppercase mb-2">
+            <div className="rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-white/[0.02] px-5 py-4 shadow-sm">
+              <div className="text-[10px] font-mono text-gray-400 dark:text-white/30 tracking-widest uppercase mb-2">
                 Notes
               </div>
-              <p className="text-sm text-white/70 leading-relaxed">{r.notes}</p>
+              <p className="text-sm text-gray-700 dark:text-white/70 leading-relaxed">{r.notes}</p>
             </div>
           )}
 
           {/* Photo */}
           {r.imageUrl && (
-            <div className="rounded-xl overflow-hidden border border-white/10">
+            <div className="rounded-xl overflow-hidden border border-gray-200 dark:border-white/10">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={r.imageUrl}
@@ -364,23 +364,34 @@ export default async function ReportPage({
           )}
 
           {/* CTA */}
-          <div className="pt-2 flex flex-col sm:flex-row gap-3">
-            <Link
-              href={`/?id=${id}`}
-              className="flex-1 text-center rounded-xl border border-cyan-400/30 bg-cyan-400/5 text-cyan-400 font-mono text-sm py-3.5 tracking-widest hover:bg-cyan-400/10 hover:border-cyan-400/60 transition-all"
-            >
-              VIEW ON MAP →
-            </Link>
-            <Link
-              href="/"
-              className="flex-1 text-center rounded-xl border border-white/10 bg-white/[0.02] text-white/50 font-mono text-sm py-3.5 tracking-widest hover:bg-white/[0.05] hover:text-white/70 transition-all"
-            >
-              ALL REPORTS
-            </Link>
+          <div className="pt-2 flex flex-col gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Link
+                href={`/?id=${id}`}
+                className="flex-1 text-center rounded-xl border border-cyan-300 dark:border-cyan-400/30 bg-cyan-50/50 dark:bg-cyan-400/5 text-cyan-700 dark:text-cyan-400 font-mono text-sm py-3.5 tracking-widest hover:bg-cyan-100/50 dark:hover:bg-cyan-400/10 hover:border-cyan-400 dark:hover:border-cyan-400/60 transition-all"
+              >
+                VIEW ON MAP →
+              </Link>
+              <Link
+                href="/"
+                className="flex-1 text-center rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/[0.02] text-gray-500 dark:text-white/50 font-mono text-sm py-3.5 tracking-widest hover:bg-gray-50 dark:hover:bg-white/[0.05] hover:text-gray-700 dark:hover:text-white/70 transition-all"
+              >
+                ALL REPORTS
+              </Link>
+            </div>
+            {r.status !== "completed" && (
+              <Link
+                href={`/?id=${id}&action=cleanup`}
+                className="w-full flex items-center justify-center gap-2 rounded-xl border border-emerald-300 dark:border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-500/5 text-emerald-700 dark:text-emerald-400 font-mono text-sm py-3.5 tracking-widest hover:bg-emerald-100/50 dark:hover:bg-emerald-500/10 hover:border-emerald-500 dark:hover:border-emerald-500/60 transition-all"
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" /></svg>
+                MARK AS CLEANED
+              </Link>
+            )}
           </div>
 
           {/* Reporter */}
-          <p className="text-xs text-white/20 font-mono">
+          <p className="text-xs text-gray-400 dark:text-white/20 font-mono">
             Reported by {r.userName ?? "Anonymous"} · chavarundo.open2.in
           </p>
         </main>

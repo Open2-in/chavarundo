@@ -88,12 +88,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preconnect" href="https://c.tile.openstreetmap.org" />
         <link rel="dns-prefetch" href="https://firestore.googleapis.com" />
         <link rel="dns-prefetch" href="https://www.clarity.ms" />
-        <meta name="theme-color" content="#0f172a" />
-        <script dangerouslySetInnerHTML={{ __html: `(function(){try{var t=localStorage.getItem('theme');if(t==='light'){document.documentElement.classList.remove('dark')}else{document.documentElement.classList.add('dark')}}catch(e){}})()` }} />
+        <meta name="theme-color" content="#f8fafc" />
+        <script dangerouslySetInnerHTML={{ __html: `(function(){try{var t=localStorage.getItem('theme');if(t==='dark'){document.documentElement.classList.add('dark')}else{document.documentElement.classList.remove('dark')}}catch(e){}})()` }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       </head>
-      <body suppressHydrationWarning className="font-sans bg-black text-white antialiased">
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+      <body suppressHydrationWarning className="font-sans bg-slate-50 dark:bg-black text-slate-900 dark:text-white antialiased">
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} disableTransitionOnChange>
           {children}
         </ThemeProvider>
       </body>
